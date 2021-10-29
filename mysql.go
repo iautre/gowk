@@ -2,6 +2,7 @@ package gowk
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	gromMysql "gorm.io/driver/mysql"
@@ -15,12 +16,15 @@ type mysql struct {
 
 var mysqls *mysql
 
-func init() {
-	mysqls = &mysql{}
-	mysqls.initAllDB()
-}
+var dbOnce sync.Once
 
 func DB(names ...string) *gorm.DB {
+	if mysqls == nil {
+		dbOnce.Do(func() {
+			mysqls = &mysql{}
+			mysqls.initAllDB()
+		})
+	}
 	if len(mysqls.dbs) == 0 {
 		return nil
 	}
@@ -41,16 +45,21 @@ func DB(names ...string) *gorm.DB {
 func (m *mysql) initAllDB() {
 	m.dbs = make(map[string]*gorm.DB)
 	dbConfs := Conf().GetAllDB()
+	var wg sync.WaitGroup
+	wg.Add(len(dbConfs))
 	for key, dbConf := range dbConfs {
-		dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
-			dbConf.User,
-			dbConf.Password,
-			dbConf.Host,
-			dbConf.Port,
-			dbConf.Name)
-		m.dbs[key] = m.initDB(dsn)
+		go func(m *mysql, key string, dbConf *databaseConf) {
+			defer wg.Done()
+			dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
+				dbConf.User,
+				dbConf.Password,
+				dbConf.Host,
+				dbConf.Port,
+				dbConf.Name)
+			m.dbs[key] = m.initDB(dsn)
+		}(m, key, dbConf)
 	}
-
+	wg.Wait()
 }
 func (m *mysql) initDB(dsn string) *gorm.DB {
 	gdb, err := gorm.Open(gromMysql.Open(dsn), &gorm.Config{

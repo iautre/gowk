@@ -3,6 +3,7 @@ package gowk
 import (
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,9 +25,12 @@ type errCode struct {
 // 12-- 用户类
 // 21--- coding类
 // 22--- imoxin类型
-var response *errCode
+var (
+	response     *errCode
+	responseOnce sync.Once
+)
 
-func init() {
+func initErr() {
 	response = &errCode{}
 	response.ERR_NOTFOUND = response.initError(404, "未找到")
 	response.ERR_OK = response.initError(0, "请求成功")
@@ -38,6 +42,9 @@ func init() {
 }
 
 func Response() *errCode {
+	if response == nil {
+		responseOnce.Do(initErr)
+	}
 	return response
 }
 

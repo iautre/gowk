@@ -1,19 +1,25 @@
 package gowk
 
 import (
+	"sync"
+
 	"github.com/gin-gonic/gin"
 )
 
 type middleware struct{}
 
-var middlewares *middleware
+var (
+	middlewares    *middleware
+	middlewareOnce sync.Once
+)
 
 func Middleware() *middleware {
+	if middlewares == nil {
+		middlewareOnce.Do(func() {
+			middlewares = &middleware{}
+		})
+	}
 	return middlewares
-}
-
-func init() {
-	middlewares = &middleware{}
 }
 
 func (m *middleware) RequestLog() gin.HandlerFunc {

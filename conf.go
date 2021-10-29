@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/spf13/viper"
 )
@@ -27,14 +28,18 @@ type serverConf struct {
 	Addr string `json:"addr"`
 }
 
-var confs *conf
-
-func init() {
-	confs = &conf{}
-	confs.initConfig()
-}
+var (
+	confs    *conf
+	confOnce sync.Once
+)
 
 func Conf() *conf {
+	if confs == nil {
+		confOnce.Do(func() {
+			confs = &conf{}
+			confs.initConfig()
+		})
+	}
 	return confs
 }
 

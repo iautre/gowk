@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -15,15 +16,19 @@ type logger struct {
 	gromLogger *gromLogger
 }
 
-var logs *logger
-
-func init() {
-	logs = &logger{}
-	logrus.SetFormatter(&logFormatter{})
-	logs.gromLogger = &gromLogger{}
-}
+var (
+	logs    *logger
+	logOnce sync.Once
+)
 
 func Log() *logger {
+	if logs == nil {
+		logOnce.Do(func() {
+			logs = &logger{}
+			logrus.SetFormatter(&logFormatter{})
+			logs.gromLogger = &gromLogger{}
+		})
+	}
 	return logs
 }
 
