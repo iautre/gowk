@@ -87,16 +87,16 @@ func (l *logger) SetLevel(level string) {
 	logrus.SetLevel(f(strings.ToLower(level)))
 }
 func (l *logger) Info(ctx context.Context, msg string, args ...interface{}) {
-	go logrus.WithContext(ctx).Info(msg)
+	logrus.WithContext(ctx).Info(msg)
 }
 func (l *logger) Warn(ctx context.Context, msg string, args ...interface{}) {
-	go logrus.WithContext(ctx).Warn(msg)
+	logrus.WithContext(ctx).Warn(msg)
 }
 func (l *logger) Error(ctx context.Context, msg string, args ...interface{}) {
-	go logrus.WithContext(ctx).Error(msg)
+	logrus.WithContext(ctx).Error(msg)
 }
 func (l *logger) Trace(ctx context.Context, msg string, args ...interface{}) {
-	go logrus.WithContext(ctx).Trace(msg)
+	logrus.WithContext(ctx).Trace(msg)
 }
 
 func (l *logger) GromLogger() *gromLogger {
