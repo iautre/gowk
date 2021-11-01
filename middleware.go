@@ -61,6 +61,6 @@ func (r *requestLog) RequestOutLog(c *gin.Context) {
 	endTime := time.Now()
 	startTime, _ := c.Get("startTime")
 	usedTime := endTime.Sub(startTime.(time.Time)).Milliseconds()
-	msg := fmt.Sprintf("%s %dms", c.Request.URL, usedTime)
+	msg := fmt.Sprintf("%s %s %s %dms", c.ClientIP(), c.Request.Method, c.Request.RequestURI, usedTime)
 	Log().Trace(c, msg)
 }

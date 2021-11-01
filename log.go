@@ -87,16 +87,16 @@ func (l *logger) SetLevel(level string) {
 	logrus.SetLevel(f(strings.ToLower(level)))
 }
 func (l *logger) Info(ctx context.Context, msg string, args ...interface{}) {
-	logrus.WithContext(ctx).Info(msg)
+	go logrus.WithContext(ctx).Info(msg)
 }
 func (l *logger) Warn(ctx context.Context, msg string, args ...interface{}) {
-	logrus.WithContext(ctx).Warn(msg)
+	go logrus.WithContext(ctx).Warn(msg)
 }
 func (l *logger) Error(ctx context.Context, msg string, args ...interface{}) {
-	logrus.WithContext(ctx).Error(msg)
+	go logrus.WithContext(ctx).Error(msg)
 }
 func (l *logger) Trace(ctx context.Context, msg string, args ...interface{}) {
-	logrus.WithContext(ctx).Trace(msg)
+	go logrus.WithContext(ctx).Trace(msg)
 }
 
 func (l *logger) GromLogger() *gromLogger {
@@ -121,7 +121,7 @@ func (gl *gromLogger) Error(ctx context.Context, msg string, args ...interface{}
 }
 func (gl *gromLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	nownow := time.Now()
-	usedTime := nownow.Sub(begin)
+	usedTime := nownow.Sub(begin).Milliseconds()
 	sql, rowsAffected := fc()
 	msg := fmt.Sprintf("sql:[%s] rows:[%d] %dms", sql, rowsAffected, usedTime)
 	Log().Trace(ctx, msg)
