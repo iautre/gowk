@@ -52,7 +52,8 @@ func (r *requestLog) RequestInLog(c *gin.Context) {
 	spanId := UUID()
 	c.Set("spanId", spanId)
 	c.Request.Header.Set("spanId", spanId)
-
+	msg := fmt.Sprintf("%s %s %s start", c.ClientIP(), c.Request.Method, c.Request.RequestURI)
+	Log().Trace(c, msg)
 }
 
 // 请求输出日志
@@ -61,6 +62,6 @@ func (r *requestLog) RequestOutLog(c *gin.Context) {
 	endTime := time.Now()
 	startTime, _ := c.Get("startTime")
 	usedTime := endTime.Sub(startTime.(time.Time)).Milliseconds()
-	msg := fmt.Sprintf("%s %s %s %dms", c.ClientIP(), c.Request.Method, c.Request.RequestURI, usedTime)
+	msg := fmt.Sprintf("%s end %dms", c.Request.Response.Status, usedTime)
 	Log().Trace(c, msg)
 }
