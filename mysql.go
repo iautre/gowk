@@ -63,7 +63,7 @@ func (m *mysql) initAllDB() {
 }
 func (m *mysql) initDB(dsn string) *gorm.DB {
 	gdb, err := gorm.Open(gromMysql.Open(dsn), &gorm.Config{
-		Logger: Log().GromLogger().LogMode(1),
+		Logger: Log().GromLogger(),
 		NamingStrategy: schema.NamingStrategy{
 			//TablePrefix: "gormv2_",
 			SingularTable: true,

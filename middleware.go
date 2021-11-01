@@ -1,7 +1,9 @@
 package gowk
 
 import (
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,7 +38,8 @@ type requestLog struct {
 
 // 请求进入日志
 func (r *requestLog) RequestInLog(c *gin.Context) {
-
+	startTime := time.Now()
+	c.Set("startTime", startTime)
 	if traceid := c.Request.Header.Get("traceid"); traceid == "" {
 		traceid = UUID()
 		c.Set("traceid", traceid)
@@ -55,10 +58,9 @@ func (r *requestLog) RequestInLog(c *gin.Context) {
 // 请求输出日志
 func (r *requestLog) RequestOutLog(c *gin.Context) {
 	// after request
-	//endTime := time.Now()
-
-	//trace, _ := c.Get("trace")
-	//traceContext := trace.((*log.TraceContext))
-
-	//log.Printf(" [INFO] %s %s  %s\n", endTime, traceContext.TraceId, traceContext.TraceId)
+	endTime := time.Now()
+	startTime, _ := c.Get("startTime")
+	usedTime := endTime.Sub(startTime.(time.Time)).Milliseconds()
+	msg := fmt.Sprintf("%s %dms", c.Request.URL, usedTime)
+	Log().Trace(c, msg)
 }
