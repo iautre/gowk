@@ -80,7 +80,7 @@ func (e *errCode) responseToMap(errcode *errCode, data interface{}) map[string]i
 		e.errToMap(e.ERR_RESERR, res)
 		return res
 	}
-	err = json.Unmarshal([]byte(jsonMap), res)
+	err = json.Unmarshal([]byte(jsonMap), &res)
 	if err != nil {
 		e.errToMap(e.ERR_RESERR, res)
 		return res
