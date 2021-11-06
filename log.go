@@ -107,7 +107,6 @@ type gromLogger struct {
 }
 
 func (gl *gromLogger) LogMode(logLevel gormLog.LogLevel) gormLog.Interface {
-
 	return &gromLogger{}
 }
 func (gl *gromLogger) Info(ctx context.Context, msg string, args ...interface{}) {

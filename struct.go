@@ -10,7 +10,7 @@ func CopyToStruct(old interface{}) interface{} {
 }
 
 //获取结构体切片
-func CopyToStructs(old interface{}) interface{} {
+func CopyToStructSlice(old interface{}) interface{} {
 	reflectType := reflect.TypeOf(old)
 	sliceOfTtype := reflect.SliceOf(reflectType)
 	sliceObj := reflect.New(sliceOfTtype)

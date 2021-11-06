@@ -52,6 +52,7 @@ func (e *errCode) Success(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, e.responseToMap(e.ERR_OK, data))
 }
 func (e *errCode) Fail(c *gin.Context, code *errCode, err error) {
+	Log().Error(c, err.Error())
 	c.JSON(http.StatusOK, e.responseToMap(code, nil))
 }
 
