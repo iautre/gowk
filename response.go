@@ -70,7 +70,6 @@ func (e *errCode) NewError(msg string, err ...interface{}) *errCode {
 }
 
 func (e *errCode) responseToMap(errcode *errCode, data interface{}) map[string]interface{} {
-
 	res := make(map[string]interface{})
 	if data == nil {
 		e.errToMap(errcode, res)
