@@ -3,73 +3,74 @@ package gowk
 import (
 	"encoding/json"
 	"net/http"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 )
-
-type errCode struct {
-	ErrCode       int
-	ErrMsg        string
-	ERR_NOTFOUND  *errCode
-	ERR_OK        *errCode
-	ERR_SERVERERR *errCode
-	ERR_NOSERVER  *errCode
-	ERR_DBERR     *errCode
-	ERR           *errCode
-	ERR_RESERR    *errCode
-}
 
 // 错误码
 // 11-- token类
 // 12-- 用户类
 // 21--- coding类
 // 22--- imoxin类型
-var (
-	response     *errCode
-	responseOnce sync.Once
-)
 
-func initErr() {
-	response = &errCode{}
-	response.ERR_NOTFOUND = response.initError(404, "未找到")
-	response.ERR_OK = response.initError(0, "请求成功")
-	response.ERR_SERVERERR = response.initError(98, "服务异常")
-	response.ERR_NOSERVER = response.initError(99, "服务不存在")
-	response.ERR_DBERR = response.initError(21, "查询失败")
-	response.ERR = response.initError(-1, "请求异常")
-	response.ERR_RESERR = response.initError(9, "返回异常")
+type err struct {
+	errCode int
+	errMsg  string
 }
 
-func Response() *errCode {
-	if response == nil {
-		responseOnce.Do(initErr)
-	}
+var _ Error = (*err)(nil)
+
+type Error interface {
+	Message(code *err, data interface{}) map[string]interface{}
+	Success(c *gin.Context, data interface{})
+	Fail(c *gin.Context, code *err, err error)
+}
+
+var (
+	response       = &err{}
+	ERR_NOTFOUND   = response.initError(404, "未找到")
+	OK             = response.initError(0, "成功")
+	ERR_SERVERERR  = response.initError(98, "服务异常")
+	ERR_NOSERVER   = response.initError(99, "服务不存在")
+	ERR_DBERR      = response.initError(21, "查询失败")
+	ERR            = response.initError(-1, "请求异常")
+	ERR_RESERR     = response.initError(9, "返回异常")
+	ERR_WS_CONTENT = response.initError(0, "已连接")
+	ERR_WS_CLOSE   = response.initError(0, "已连接")
+)
+
+func Response() Error {
 	return response
 }
 
-func (e *errCode) Success(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, e.responseToMap(e.ERR_OK, data))
+func (e *err) Message(code *err, data interface{}) map[string]interface{} {
+	return e.responseToMap(code, data)
 }
-func (e *errCode) Fail(c *gin.Context, code *errCode, err error) {
+
+func (e *err) Success(c *gin.Context, data interface{}) {
+	c.JSON(http.StatusOK, e.responseToMap(OK, data))
+}
+func (e *err) Fail(c *gin.Context, code *err, err error) {
 	Log().Error(c, err.Error())
 	c.JSON(http.StatusOK, e.responseToMap(code, nil))
 }
 
-func (e *errCode) initError(code int, msg string) *errCode {
-	return &errCode{
-		ErrCode: code,
-		ErrMsg:  msg,
+func (e *err) initError(code int, msg string) *err {
+	return &err{
+		errCode: code,
+		errMsg:  msg,
 	}
 }
 
-func (e *errCode) NewError(msg string, err ...interface{}) *errCode {
+func (e *err) NewError(msg string, errs ...interface{}) *err {
 	//log.Error("这是错误", err...)
-	e.ERR.ErrMsg = msg
-	return e.ERR
+	return &err{
+		errCode: 0,
+		errMsg:  msg,
+	}
 }
 
-func (e *errCode) responseToMap(errcode *errCode, data interface{}) map[string]interface{} {
+func (e *err) responseToMap(errcode *err, data interface{}) map[string]interface{} {
 	res := make(map[string]interface{})
 	if data == nil {
 		e.errToMap(errcode, res)
@@ -77,19 +78,19 @@ func (e *errCode) responseToMap(errcode *errCode, data interface{}) map[string]i
 	}
 	jsonMap, err := json.Marshal(data)
 	if err != nil {
-		e.errToMap(e.ERR_RESERR, res)
+		e.errToMap(ERR_RESERR, res)
 		return res
 	}
 	err = json.Unmarshal([]byte(jsonMap), &res)
 	if err != nil {
-		e.errToMap(e.ERR_RESERR, res)
+		e.errToMap(ERR_RESERR, res)
 		return res
 	}
 	e.errToMap(errcode, res)
 	return res
 }
 
-func (e *errCode) errToMap(errcode *errCode, res map[string]interface{}) {
-	res["errcode"] = errcode.ErrCode
-	res["errmsg"] = errcode.ErrMsg
+func (e *err) errToMap(errcode *err, res map[string]interface{}) {
+	res["errcode"] = errcode.errCode
+	res["errmsg"] = errcode.errMsg
 }
