@@ -7,12 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 错误码
-// 11-- token类
-// 12-- 用户类
-// 21--- coding类
-// 22--- imoxin类型
-
 type err struct {
 	errCode int
 	errMsg  string
@@ -26,14 +20,32 @@ type Error interface {
 	Fail(c *gin.Context, code *err, err error)
 }
 
+// 错误码
+// 11-- token类
+// 12-- app类
+// 13-- 用户类
+// 14 -- 公共
+
+// 21--- coding类
+// 22--- imoxin类型
+
+// 5-- socket类
+
 var (
-	response       = &err{}
-	ERR_NOTFOUND   = response.initError(404, "未找到")
-	OK             = response.initError(0, "成功")
-	ERR_SERVERERR  = response.initError(98, "服务异常")
-	ERR_NOSERVER   = response.initError(99, "服务不存在")
-	ERR_DBERR      = response.initError(21, "查询失败")
-	ERR            = response.initError(-1, "请求异常")
+	response = &err{}
+	OK       = response.initError(0, "成功")
+	ERR      = response.initError(-1, "失败")
+
+	ERR_TOKEN = response.initError(1101, "无效token")
+
+	ERR_NOAPP = response.initError(12404, "无效app")
+
+	ERR_PARAM     = response.initError(1401, "参数错误")
+	ERR_NOTFOUND  = response.initError(404, "未找到")
+	ERR_SERVERERR = response.initError(98, "服务异常")
+	ERR_NOSERVER  = response.initError(99, "服务不存在")
+	ERR_DBERR     = response.initError(21, "查询失败")
+
 	ERR_RESERR     = response.initError(9, "返回异常")
 	ERR_WS_CONTENT = response.initError(0, "已连接")
 	ERR_WS_CLOSE   = response.initError(0, "已连接")
@@ -49,10 +61,12 @@ func (e *err) Message(code *err, data interface{}) map[string]interface{} {
 
 func (e *err) Success(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, e.responseToMap(OK, data))
+	c.Abort()
 }
 func (e *err) Fail(c *gin.Context, code *err, err error) {
 	Log().Error(c, err.Error())
 	c.JSON(http.StatusOK, e.responseToMap(code, nil))
+	c.Abort()
 }
 
 func (e *err) initError(code int, msg string) *err {

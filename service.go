@@ -35,7 +35,6 @@ func (s *Service) GetOne(queryParam interface{}) (interface{}, error) {
 	model := CopyToStruct(queryParam)
 	resStruct := CopyToStruct(queryParam)
 	if res := DB().WithContext(s.Ctx).Model(model).Where(queryParam).First(resStruct); res.Error != nil {
-
 		return nil, res.Error
 	}
 	return resStruct, nil

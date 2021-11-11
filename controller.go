@@ -12,11 +12,13 @@ func (s *Controller) GetList(model interface{}) func(*gin.Context) {
 	return func(c *gin.Context) {
 		pageModel := &PageModel{}
 		if err := c.ShouldBindQuery(pageModel); err != nil {
-			Response().Fail(c, ERR, err)
+			Response().Fail(c, ERR_PARAM, err)
+			return
 		}
 		queryParam := CopyToStruct(model)
 		if err := c.ShouldBindQuery(queryParam); err != nil {
-			Response().Fail(c, ERR, err)
+			Response().Fail(c, ERR_PARAM, err)
+			return
 		}
 		service := NewService(c)
 		res, err := service.GetList(pageModel, queryParam)
@@ -33,6 +35,7 @@ func (s *Controller) GetOne(model interface{}) func(*gin.Context) {
 		queryParam := CopyToStruct(model)
 		if err := c.ShouldBindQuery(queryParam); err != nil {
 			Response().Fail(c, ERR, err)
+			return
 		}
 		res, err := NewService(c).GetOne(queryParam)
 		if err != nil {
@@ -47,6 +50,7 @@ func (s *Controller) Update(model interface{}) func(*gin.Context) {
 		postParam := CopyToStruct(model)
 		if err := c.ShouldBind(postParam); err != nil {
 			Response().Fail(c, ERR, err)
+			return
 		}
 		res, err := NewService(c).Update(postParam)
 		if err != nil {
@@ -61,6 +65,7 @@ func (s *Controller) Save(model interface{}) func(*gin.Context) {
 		postParam := CopyToStruct(model)
 		if err := c.ShouldBind(postParam); err != nil {
 			Response().Fail(c, ERR, err)
+			return
 		}
 		res, err := NewService(c).Save(postParam)
 		if err != nil {
