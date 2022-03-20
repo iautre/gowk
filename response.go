@@ -40,11 +40,11 @@ var (
 
 	ERR_NOAPP = response.initError(12404, "无效app")
 
-	ERR_PARAM     = response.initError(1401, "参数错误")
-	ERR_NOTFOUND  = response.initError(404, "未找到")
-	ERR_SERVERERR = response.initError(98, "服务异常")
-	ERR_NOSERVER  = response.initError(99, "服务不存在")
-	ERR_DBERR     = response.initError(21, "查询失败")
+	ERR_PARAM    = response.initError(1401, "参数错误")
+	ERR_NOTFOUND = response.initError(404, "未找到")
+	ERR_SERVER   = response.initError(98, "服务异常")
+	ERR_NOSERVER = response.initError(99, "服务不存在")
+	ERR_DBERR    = response.initError(21, "查询失败")
 
 	ERR_RESERR     = response.initError(9, "返回异常")
 	ERR_WS_CONTENT = response.initError(0, "已连接")
