@@ -17,13 +17,16 @@ type conf struct {
 
 // database 数据库
 type databaseConf struct {
+	Type        string `json:"type"`
 	User        string `json:"user"`
 	Password    string `json:"password"`
 	Host        string `json:"host"`
 	Name        string `json:"name"`
 	TablePrefix string `json:"tablePrefix"`
 	Port        int    `json:"port"`
+	MaxPoolSize uint64 `josn:"maxPoolSize"`
 }
+
 type serverConf struct {
 	Addr string `json:"addr"`
 }
@@ -92,8 +95,14 @@ func (c *conf) GetString(key string) string {
 func (c *conf) GetInt(key string) int {
 	return c.all.GetInt(key)
 }
-func (c *conf) GetAllDB() map[string]*databaseConf {
-	return c.dbMap
+func (c *conf) GetAllDB(types string) map[string]*databaseConf {
+	dbMap := make(map[string]*databaseConf)
+	for k, v := range c.dbMap {
+		if v.Type == types {
+			dbMap[k] = v
+		}
+	}
+	return dbMap
 }
 func (c *conf) GetDB(name string) *databaseConf {
 	if name == "" {

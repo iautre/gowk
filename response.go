@@ -46,6 +46,8 @@ var (
 	ERR_NOSERVER = response.initError(99, "服务不存在")
 	ERR_DBERR    = response.initError(21, "查询失败")
 
+	ERR_NODATA = response.initError(23, "无数据")
+
 	ERR_RESERR     = response.initError(9, "返回异常")
 	ERR_WS_CONTENT = response.initError(0, "已连接")
 	ERR_WS_CLOSE   = response.initError(0, "已连接")
@@ -64,7 +66,9 @@ func (e *err) Success(c *gin.Context, data interface{}) {
 	c.Abort()
 }
 func (e *err) Fail(c *gin.Context, code *err, err error) {
-	Log().Error(c, err.Error())
+	if err != nil {
+		Log().Error(c, err.Error())
+	}
 	c.JSON(http.StatusOK, e.responseToMap(code, nil))
 	c.Abort()
 }

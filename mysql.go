@@ -16,11 +16,11 @@ type mysql struct {
 
 var mysqls *mysql
 
-var dbOnce sync.Once
+var mysqlOnce sync.Once
 
-func DB(names ...string) *gorm.DB {
+func Mysql(names ...string) *gorm.DB {
 	if mysqls == nil {
-		dbOnce.Do(func() {
+		mysqlOnce.Do(func() {
 			mysqls = &mysql{}
 			mysqls.initAllDB()
 		})
@@ -44,7 +44,7 @@ func DB(names ...string) *gorm.DB {
 
 func (m *mysql) initAllDB() {
 	m.dbs = make(map[string]*gorm.DB)
-	dbConfs := Conf().GetAllDB()
+	dbConfs := Conf().GetAllDB("mysql")
 	var wg sync.WaitGroup
 	wg.Add(len(dbConfs))
 	for key, dbConf := range dbConfs {

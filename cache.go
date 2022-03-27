@@ -12,7 +12,7 @@ var (
 
 func Cache() *cache {
 	if caches == nil {
-		logOnce.Do(func() {
+		cacheOnce.Do(func() {
 			caches = &cache{
 				Data:     make(map[string]*item),
 				Interval: 1,
