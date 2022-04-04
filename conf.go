@@ -60,6 +60,8 @@ func (c *conf) initConfig() {
 	if env == "" {
 		env = "local"
 	}
+	log.Printf(" [INFO] GO_ENV:%s\n", env)
+
 	viper.SetConfigName(fmt.Sprintf("%s.%s", fileName, env))
 	viper.SetConfigType(fileType)
 	viper.AddConfigPath(filePath)
