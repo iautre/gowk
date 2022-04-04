@@ -21,25 +21,21 @@ type Error interface {
 }
 
 // 错误码
-// 11-- token类
-// 12-- app类
-// 13-- 用户类
-// 14 -- 公共
-
-// 21--- coding类
-// 22--- imoxin类型
-
-// 5-- socket类
+// 1- 系统
+// 2- 认证
+// 3- socket
+// 21-- token类
+// 22-- app类
+// 23-- 用户类
+// 24 -- 公共
 
 var (
 	response = &err{}
 	OK       = response.initError(0, "成功")
 	ERR      = response.initError(-1, "失败")
 
-	ERR_TOKEN = response.initError(1101, "无效token")
-
-	ERR_NOAPP = response.initError(12404, "无效app")
-
+	ERR_TOKEN    = response.initError(2101, "无效token")
+	ERR_NOAPP    = response.initError(12404, "无效app")
 	ERR_PARAM    = response.initError(1401, "参数错误")
 	ERR_NOTFOUND = response.initError(404, "未找到")
 	ERR_SERVER   = response.initError(98, "服务异常")
@@ -48,10 +44,15 @@ var (
 
 	ERR_NODATA = response.initError(23, "无数据")
 
-	ERR_RESERR     = response.initError(9, "返回异常")
+	ERR_RESERR = response.initError(9, "返回异常")
+
 	ERR_WS_CONTENT = response.initError(0, "已连接")
-	ERR_WS_CLOSE   = response.initError(0, "已连接")
+	ERR_WS_CLOSE   = response.initError(-1, "已连接")
 )
+
+func NewError(code int, msg string) *err {
+	return response.initError(code, msg)
+}
 
 func Response() Error {
 	return response

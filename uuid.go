@@ -18,6 +18,10 @@ func UUID64() string {
 	return UUID() + UUID()
 }
 
+func NewAuid() string {
+	return UUID()
+}
+
 func UUID36() string {
 	rand.Seed(time.Now().UnixNano())
 	ra := rand.Intn(900) + 100

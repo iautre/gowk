@@ -17,3 +17,6 @@ type PageModel struct {
 	Total int64       `json:"total"`
 	List  interface{} `json:"list"`
 }
+
+type M = map[string]interface{}
+type A = []interface{}
