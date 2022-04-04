@@ -26,7 +26,7 @@ func Mongo(names ...string) *mongo.Client {
 		})
 	}
 	if len(mongoDBs.dbs) == 0 {
-		return nil
+		panic("未配置数据库")
 	}
 	if len(names) == 0 {
 		if db, ok := mongoDBs.dbs["default"]; ok {
@@ -39,7 +39,7 @@ func Mongo(names ...string) *mongo.Client {
 	if db, ok := mongoDBs.dbs[names[0]]; ok {
 		return db
 	}
-	return nil
+	panic("未找到配置数据库")
 }
 
 func (m *mongoDB) initAllDB() {
