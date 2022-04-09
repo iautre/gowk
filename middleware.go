@@ -1,6 +1,7 @@
 package gowk
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -40,14 +41,14 @@ type requestLog struct {
 func (r *requestLog) RequestInLog(c *gin.Context) {
 	startTime := time.Now()
 	c.Set("startTime", startTime)
-	if traceid := c.Request.Header.Get("traceid"); traceid == "" {
-		traceid = UUID()
-		c.Set("traceid", traceid)
-		c.Request.Header.Set("traceid", traceid)
+	if traceId := c.Request.Header.Get("traceId"); traceId == "" {
+		traceId = UUID()
+		c.Set("traceId", traceId)
+		c.Request.Header.Set("traceId", traceId)
 	}
-	if spanId := c.Request.Header.Get("spanid"); spanId != "" {
-		c.Set("pspanid", spanId)
-		c.Request.Header.Set("pspanid", spanId)
+	if spanId := c.Request.Header.Get("spanId"); spanId != "" {
+		c.Set("pspanId", spanId)
+		c.Request.Header.Set("pspanId", spanId)
 	}
 	spanId := UUID()
 	c.Set("spanId", spanId)
@@ -64,4 +65,25 @@ func (r *requestLog) RequestOutLog(c *gin.Context) {
 	usedTime := endTime.Sub(startTime.(time.Time)).Milliseconds()
 	msg := fmt.Sprintf("%d end %dms", c.Writer.Status(), usedTime)
 	Log().Trace(c, msg)
+}
+
+//	全局统一处理错误
+func (m *middleware) Recover() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				var errMsg *errorCode
+				err := json.Unmarshal([]byte(string(err.(string))), errMsg)
+				if err != nil {
+					Response().Fail(c, ERR_UN, err)
+					// c.Abort()
+					return
+				}
+				// 返回错误信息
+				Response().Fail(c, errMsg, err)
+				// c.Abort()
+			}
+		}()
+		c.Next()
+	}
 }

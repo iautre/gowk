@@ -47,16 +47,16 @@ func (s *logFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	//fmt.Println(entry.Data)
 	//msg := fmt.Sprintf("%s [%s:%d][traceid:%s][%s] %s\n", timestamp, file, len, bbb, strings.ToUpper(entry.Level.String()), entry.Message)
 
-	traceid := ctx.Value("traceid")
-	pspanid := ctx.Value("pspanid")
-	if pspanid == nil {
-		pspanid = ""
+	traceId := ctx.Value("traceId")
+	pspanId := ctx.Value("pspanId")
+	if pspanId == nil {
+		pspanId = ""
 	}
 	spanId := ctx.Value("spanId")
 	msg := fmt.Sprintf("%s [%s][%s][%s][%s] %s\n",
 		timestamp,
-		traceid,
-		pspanid,
+		traceId,
+		pspanId,
 		spanId,
 		strings.ToUpper(entry.Level.String()),
 		entry.Message)
