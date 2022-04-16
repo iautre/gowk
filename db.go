@@ -10,12 +10,12 @@ type dbType interface {
 }
 
 func DB[T dbType](names ...string) (t T) {
-	var ti interface{} = t
-	switch ti.(type) {
+	var tmp any = t
+	switch tmp.(type) {
 	case *gorm.DB:
-		ti = Mysql()
+		tmp = Mysql()
 	case *mongo.Client:
-		ti = Mongo()
+		tmp = Mongo()
 	}
-	return ti.(T)
+	return tmp.(T)
 }
