@@ -72,15 +72,14 @@ func (m *middleware) Recover() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				var errMsg *errorCode
-				err := json.Unmarshal([]byte(string(err.(string))), errMsg)
-				if err != nil {
+				var errMsg *ErrorCode
+				if err := json.Unmarshal([]byte(string(err.(string))), &errMsg); err != nil {
 					Response().Fail(c, ERR_UN, err)
 					// c.Abort()
 					return
 				}
 				// 返回错误信息
-				Response().Fail(c, errMsg, err)
+				Response().Fail(c, errMsg, nil)
 				// c.Abort()
 			}
 		}()

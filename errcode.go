@@ -2,27 +2,30 @@ package gowk
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-type errorCode struct {
+type ErrorCode struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 	Data any    `json:"data,omitempty"`
 }
 
-func Panic(e *errorCode) {
+func Panic(e *ErrorCode) {
 	data, err := json.Marshal(e)
 	if err != nil {
-		log.Panic(err)
+		panic(err.Error())
+		// log.Panic(err)
 	}
-	log.Panic(string(data))
+	panic(string(data))
+	// log.Panic(string(data))
 }
-func NewErrorCode(code int, msg string) *errorCode {
-	return &errorCode{
+
+func NewErrorCode(code int, msg string) *ErrorCode {
+	return &ErrorCode{
 		Code: code,
 		Msg:  msg,
 	}
@@ -58,10 +61,10 @@ var (
 	ERR_WS_CLOSE   = NewErrorCode(-1, "已连接")
 )
 
-func (e *errorCode) i() {}
+func (e *ErrorCode) i() {}
 
-func (e *errorCode) Message(code *errorCode, data any) []byte {
-	res := &errorCode{
+func (e *ErrorCode) Message(code *ErrorCode, data any) []byte {
+	res := &ErrorCode{
 		Code: code.Code,
 		Msg:  code.Msg,
 		Data: data,
@@ -71,8 +74,8 @@ func (e *errorCode) Message(code *errorCode, data any) []byte {
 }
 
 // 成功消息
-func (e *errorCode) Success(c *gin.Context, data any) {
-	res := &errorCode{
+func (e *ErrorCode) Success(c *gin.Context, data any) {
+	res := &ErrorCode{
 		Code: OK.Code,
 		Msg:  OK.Msg,
 		Data: data,
@@ -82,14 +85,15 @@ func (e *errorCode) Success(c *gin.Context, data any) {
 }
 
 //失败消息
-func (e *errorCode) Fail(c *gin.Context, code *errorCode, err error) {
+func (e *ErrorCode) Fail(c *gin.Context, code *ErrorCode, err error) {
 	if err != nil {
 		Log().Error(c, err.Error())
 	}
-	res := &errorCode{
+	res := &ErrorCode{
 		Code: code.Code,
 		Msg:  code.Msg,
 	}
+	Log().Error(c, fmt.Sprintf("result: %v", string(e.Message(res, nil))))
 	c.JSON(http.StatusOK, res)
 	c.Abort()
 }
