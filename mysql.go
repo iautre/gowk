@@ -50,26 +50,25 @@ func (m *mysql) initAllDB() {
 	for key, dbConf := range dbConfs {
 		go func(m *mysql, key string, dbConf *databaseConf) {
 			defer wg.Done()
-			dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
-				dbConf.User,
-				dbConf.Password,
-				dbConf.Host,
-				dbConf.Port,
-				dbConf.Name)
-			m.dbs[key] = m.initDB(dsn)
+			m.dbs[key] = m.initDB(dbConf)
 		}(m, key, dbConf)
 	}
 	wg.Wait()
 }
-func (m *mysql) initDB(dsn string) *gorm.DB {
+func (m *mysql) initDB(dbConf *databaseConf) *gorm.DB {
+	dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
+		dbConf.User,
+		dbConf.Password,
+		dbConf.Host,
+		dbConf.Port,
+		dbConf.Name)
 	gdb, err := gorm.Open(gromMysql.Open(dsn), &gorm.Config{
 		Logger: Log().GromLogger(),
 		NamingStrategy: schema.NamingStrategy{
-			//TablePrefix: "gormv2_",
+			TablePrefix:   dbConf.TablePrefix,
 			SingularTable: true,
 		},
 	})
-
 	//db.SetLogger(util.Log())
 	if err != nil {
 		fmt.Println(err)

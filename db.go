@@ -9,7 +9,7 @@ type dbType interface {
 	*gorm.DB | *mongo.Client
 }
 
-func DB[T dbType](names ...string) (t T) {
+func DBs[T dbType](names ...string) (t T) {
 	var tmp any = t
 	switch tmp.(type) {
 	case *gorm.DB:
@@ -18,4 +18,7 @@ func DB[T dbType](names ...string) (t T) {
 		tmp = Mongo()
 	}
 	return tmp.(T)
+}
+func DB(names ...string) *gorm.DB {
+	return Mysql(names...)
 }

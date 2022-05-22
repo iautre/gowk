@@ -14,7 +14,7 @@ type ErrorCode struct {
 	Data any    `json:"data,omitempty"`
 }
 
-func Panic(e *ErrorCode) {
+func Panic(e *ErrorCode, errs ...error) {
 	data, err := json.Marshal(e)
 	if err != nil {
 		panic(err.Error())

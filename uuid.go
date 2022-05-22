@@ -18,8 +18,8 @@ func UUID64() string {
 	return UUID() + UUID()
 }
 
-func NewAuid() string {
-	return UUID()
+func NewAuid() uint {
+	return uint(time.Now().Unix())
 }
 
 func UUID36() string {
