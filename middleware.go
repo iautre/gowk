@@ -3,6 +3,7 @@ package gowk
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -72,15 +73,26 @@ func (m *middleware) Recover() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				var errMsg *ErrorCode
-				if err := json.Unmarshal([]byte(string(err.(string))), &errMsg); err != nil {
-					Response().Fail(c, ERR_UN, err)
+				switch err.(type) {
+				case string: // 自定义异常
+					str, _ := err.(string)
+					var errMsg *ErrorCode
+					if err := json.Unmarshal([]byte(str), &errMsg); err != nil {
+						Response().Fail(c, ERR_UN, err)
+						// c.Abort()
+						return
+					}
+					// 返回错误信息
+					Response().Fail(c, errMsg, nil)
 					// c.Abort()
-					return
+				case runtime.Error: // 运行时错误
+					Log().Error(c, (err.(runtime.Error)).Error())
+					Response().Fail(c, ERR_UN, nil)
+					// c.Abort()
+				default: // 非运行时错误
+					Log().Error(c, fmt.Sprintf("%v", err))
+					Response().Fail(c, ERR_UN, nil)
 				}
-				// 返回错误信息
-				Response().Fail(c, errMsg, nil)
-				// c.Abort()
 			}
 		}()
 		c.Next()

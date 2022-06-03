@@ -2,54 +2,36 @@ package gowk
 
 import "github.com/gin-gonic/gin"
 
-type Service struct {
+type Service[T any] struct {
 	Ctx *gin.Context
 }
 
-func NewService(ctx *gin.Context) *Service {
-	return &Service{
+func NewService[T any](ctx *gin.Context) *Service[T] {
+	return &Service[T]{
 		Ctx: ctx,
 	}
 }
-func (s *Service) GetList(pageModel *PageModel, queryParam interface{}) (*PageModel, error) {
-	model := CopyToStruct(queryParam)
-	if pageModel.Page <= 0 {
-		pageModel.Page = 1
+func (s *Service[T]) GetList(pageModel *PageModel[T], queryParam *T) (*PageModel[T], error) {
+	var t T
+	var resStructList []*T
+	if err := Mysql().WithContext(s.Ctx).Model(&t).Where(queryParam).Count(&pageModel.Total).Error; err != nil {
+		return nil, err
 	}
-	if pageModel.Size <= 0 {
-		pageModel.Size = 10
-	}
-	//newModel := CopyToStruct(model)
-	resStructList := CopyToStructSlice(queryParam)
-	if res := Mysql().WithContext(s.Ctx).Model(model).Where(queryParam).Limit(pageModel.Size).Offset((pageModel.Page - 1) * pageModel.Size).Count(&pageModel.Total); res.Error != nil {
-		return nil, res.Error
-	}
-	if res := Mysql().WithContext(s.Ctx).Model(model).Where(queryParam).Limit(pageModel.Size).Offset((pageModel.Page - 1) * pageModel.Size).Find(resStructList); res.Error != nil {
-		return nil, res.Error
+	if err := Mysql().WithContext(s.Ctx).Model(&t).Where(queryParam).Scopes(Paginate(pageModel)).Find(&resStructList).Error; err != nil {
+		return nil, err
 	}
 	pageModel.List = resStructList
 	return pageModel, nil
 }
 
-func (s *Service) GetOne(queryParam interface{}) (interface{}, error) {
-	model := CopyToStruct(queryParam)
-	resStruct := CopyToStruct(queryParam)
-	if res := Mysql().WithContext(s.Ctx).Model(model).Where(queryParam).First(resStruct); res.Error != nil {
-		return nil, res.Error
-	}
-	return resStruct, nil
+func (s *Service[T]) GetOne(queryParam *T) (T, error) {
+	var model T
+	err := Mysql().WithContext(s.Ctx).Where(queryParam).First(&model).Error
+	return model, err
 }
-func (s *Service) Update(postParam interface{}) (interface{}, error) {
-	model := CopyToStruct(postParam)
-	if res := Mysql().WithContext(s.Ctx).Model(model).Updates(postParam); res.Error != nil {
-		return nil, res.Error
-	}
-	return postParam, nil
+func (s *Service[T]) Update(postParam *T) error {
+	return Mysql().WithContext(s.Ctx).Updates(postParam).Error
 }
-func (s *Service) Save(postParam interface{}) (interface{}, error) {
-	model := CopyToStruct(postParam)
-	if res := Mysql().WithContext(s.Ctx).Model(model).Save(postParam); res.Error != nil {
-		return nil, res.Error
-	}
-	return postParam, nil
+func (s *Service[T]) Save(postParam *T) error {
+	return Mysql().WithContext(s.Ctx).Save(postParam).Error
 }
