@@ -73,12 +73,7 @@ func (t *Time) MarshalBSONValue() (bsontype.Type, []byte, error) {
 func (t *Time) UnmarshalBSONValue(ty bsontype.Type, data []byte) error {
 	if ty == bsontype.String {
 		if readString, _, ok := bsoncore.ReadString(data); ok {
-			timeStr := string(readString)
-			if timeStr == "\"\"" {
-				*t = Time{}
-				return nil
-			}
-			now, err := time.ParseInLocation("\""+timeFormart+"\"", timeStr, time.Local)
+			now, err := time.ParseInLocation(timeFormart, readString, time.Local)
 			if err != nil {
 				return err
 			}
