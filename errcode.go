@@ -45,6 +45,8 @@ var (
 	ERR_UN = NewErrorCode(-1, "未知错误")
 	OK     = NewErrorCode(0, "成功")
 
+	ERR_AUTH = NewErrorCode(401, "认证失败")
+
 	ERR_TOKEN    = NewErrorCode(2101, "无效token")
 	ERR_NOAPP    = NewErrorCode(12404, "无效app")
 	ERR_PARAM    = NewErrorCode(1401, "参数错误")
