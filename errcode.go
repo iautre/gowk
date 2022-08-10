@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +15,8 @@ type ErrorCode struct {
 	Data any    `json:"data,omitempty"`
 }
 
-func Panic(e *ErrorCode, errs ...error) {
+func Panic(e *ErrorCode, errStr ...string) {
+	e.Msg = strings.Join(errStr, "")
 	data, err := json.Marshal(e)
 	if err != nil {
 		panic(err.Error())
