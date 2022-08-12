@@ -16,17 +16,17 @@ type mysql struct {
 
 var mysqls *mysql
 
-var mysqlOnce sync.Once
+func initMysql() {
+	dbConfs := Conf().GetAllDB("mysql")
+	if len(dbConfs) > 0 {
+		mysqls = &mysql{}
+		mysqls.initAllDB(dbConfs)
+	}
+}
 
 func Mysql(names ...string) *gorm.DB {
 	if mysqls == nil {
-		mysqlOnce.Do(func() {
-			mysqls = &mysql{}
-			mysqls.initAllDB()
-		})
-	}
-	if len(mysqls.dbs) == 0 {
-		return nil
+		panic("未配置数据库")
 	}
 	if len(names) == 0 {
 		if db, ok := mysqls.dbs["default"]; ok {
@@ -39,12 +39,11 @@ func Mysql(names ...string) *gorm.DB {
 	if db, ok := mysqls.dbs[names[0]]; ok {
 		return db
 	}
-	return nil
+	panic("未找到配置数据库")
 }
 
-func (m *mysql) initAllDB() {
+func (m *mysql) initAllDB(dbConfs map[string]*databaseConf) {
 	m.dbs = make(map[string]*gorm.DB)
-	dbConfs := Conf().GetAllDB("mysql")
 	var wg sync.WaitGroup
 	wg.Add(len(dbConfs))
 	for key, dbConf := range dbConfs {
@@ -63,7 +62,7 @@ func (m *mysql) initDB(dbConf *databaseConf) *gorm.DB {
 		dbConf.Port,
 		dbConf.Name)
 	gdb, err := gorm.Open(gromMysql.Open(dsn), &gorm.Config{
-		Logger: Log().GromLogger(),
+		Logger: &gromLogger{},
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   dbConf.TablePrefix,
 			SingularTable: true,
@@ -71,11 +70,11 @@ func (m *mysql) initDB(dbConf *databaseConf) *gorm.DB {
 	})
 	//db.SetLogger(util.Log())
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	sqlDB, err := gdb.DB()
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	// SetMaxIdleConns 设置空闲连接池中连接的最大数量
 	sqlDB.SetMaxIdleConns(10)

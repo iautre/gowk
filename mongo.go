@@ -16,16 +16,16 @@ type mongoDB struct {
 
 var mongoDBs *mongoDB
 
-var mongoOnce sync.Once
+func initMongo() {
+	dbConfs := Conf().GetAllDB("mongo")
+	if len(dbConfs) > 0 {
+		mongoDBs = &mongoDB{}
+		mongoDBs.initAllDB(dbConfs)
+	}
+}
 
 func Mongo(names ...string) *mongo.Client {
 	if mongoDBs == nil {
-		mongoOnce.Do(func() {
-			mongoDBs = &mongoDB{}
-			mongoDBs.initAllDB()
-		})
-	}
-	if len(mongoDBs.dbs) == 0 {
 		panic("未配置数据库")
 	}
 	if len(names) == 0 {
@@ -42,9 +42,8 @@ func Mongo(names ...string) *mongo.Client {
 	panic("未找到配置数据库")
 }
 
-func (m *mongoDB) initAllDB() {
+func (m *mongoDB) initAllDB(dbConfs map[string]*databaseConf) {
 	m.dbs = make(map[string]*mongo.Client)
-	dbConfs := Conf().GetAllDB("mongo")
 	var wg sync.WaitGroup
 	wg.Add(len(dbConfs))
 	for key, dbConf := range dbConfs {
@@ -66,6 +65,7 @@ func (m *mongoDB) initDB(uri string, maxPoolSize uint64) *mongo.Client {
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri).SetMaxPoolSize(maxPoolSize)) // 连接池
 	if err != nil {
+		panic("mongo连接池异常")
 		//Log().Error(err)
 	}
 	return client
