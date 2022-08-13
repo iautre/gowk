@@ -14,17 +14,25 @@ type mongoDB struct {
 	dbs map[string]*mongo.Client
 }
 
-var mongoDBs *mongoDB
+var (
+	mongoDBs  *mongoDB
+	mongoOnce sync.Once
+)
 
 func initMongo() {
-	dbConfs := Conf().GetAllDB("mongo")
-	if len(dbConfs) > 0 {
-		mongoDBs = &mongoDB{}
-		mongoDBs.initAllDB(dbConfs)
-	}
+	mongoOnce.Do(func() {
+		dbConfs := Conf().GetAllDB("mongo")
+		if len(dbConfs) > 0 {
+			mongoDBs = &mongoDB{}
+			mongoDBs.initAllDB(dbConfs)
+		}
+	})
 }
 
 func Mongo(names ...string) *mongo.Client {
+	if mongoDBs == nil {
+		initMongo()
+	}
 	if mongoDBs == nil {
 		panic("未配置数据库")
 	}
