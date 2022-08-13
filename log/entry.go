@@ -8,7 +8,7 @@ import (
 type Entry struct {
 	Logger  *Logger
 	Level   Level
-	Message string
+	Message any
 	Context context.Context
 	Caller  *runtime.Frame
 }

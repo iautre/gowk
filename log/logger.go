@@ -31,7 +31,7 @@ const (
 	TraceLevel
 )
 
-type H map[string]string
+type H map[string]any
 
 func (l Level) ToString() string {
 	switch l {
@@ -65,44 +65,88 @@ func New() *Logger {
 	lo := &Logger{
 		Level:     ErrorLevel,
 		Formatter: &DefaultFormatter{},
+		ch:        make(chan *H, 10),
 	}
 	lo.createLogRoutinue()
 	return lo
 }
-func (lo *Logger) Fatal(ctx context.Context, format string, a ...any) {
+func (lo *Logger) Fatalf(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 1 {
-		lo.write(ctx, format, a...)
+		lo.writef(ctx, format, a...)
 	}
 }
-func (lo *Logger) Error(ctx context.Context, format string, a ...any) {
+func (lo *Logger) Errorf(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 2 {
-		lo.write(ctx, format, a...)
+		lo.writef(ctx, format, a...)
 	}
 }
-func (lo *Logger) Warn(ctx context.Context, format string, a ...any) {
+func (lo *Logger) Warnf(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 3 {
-		lo.write(ctx, format, a...)
+		lo.writef(ctx, format, a...)
 	}
 }
-func (lo *Logger) Info(ctx context.Context, format string, a ...any) {
+func (lo *Logger) Infof(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 4 {
-		lo.write(ctx, format, a...)
+		lo.writef(ctx, format, a...)
 	}
 }
-func (lo *Logger) Debug(ctx context.Context, format string, a ...any) {
+func (lo *Logger) Debugf(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 5 {
-		lo.write(ctx, format, a...)
+		lo.writef(ctx, format, a...)
 	}
 }
-func (lo *Logger) Trace(ctx context.Context, format string, a ...any) {
+func (lo *Logger) Tracef(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 6 {
-		lo.write(ctx, format, a...)
+		lo.writef(ctx, format, a...)
 	}
 }
-func (lo *Logger) write(ctx context.Context, format string, a ...any) {
+
+func (lo *Logger) writef(ctx context.Context, format string, a ...any) {
 	msg, err := lo.Formatter.Format(&Entry{
 		Context: ctx,
 		Message: fmt.Sprintf(format, a...),
+		Level:   lo.Level,
+	})
+	if err != nil {
+		panic("Format错误")
+	}
+	lo.ch <- msg
+}
+func (lo *Logger) Fatal(ctx context.Context, a ...any) {
+	if lo.Level >= 1 {
+		lo.write(ctx, a...)
+	}
+}
+func (lo *Logger) Error(ctx context.Context, a ...any) {
+	if lo.Level >= 2 {
+		lo.write(ctx, a...)
+	}
+}
+func (lo *Logger) Warn(ctx context.Context, a ...any) {
+	if lo.Level >= 3 {
+		lo.write(ctx, a...)
+	}
+}
+func (lo *Logger) Info(ctx context.Context, a ...any) {
+	if lo.Level >= 4 {
+		lo.write(ctx, a...)
+	}
+}
+func (lo *Logger) Debug(ctx context.Context, a ...any) {
+	if lo.Level >= 5 {
+		lo.write(ctx, a...)
+	}
+}
+func (lo *Logger) Trace(ctx context.Context, a ...any) {
+	if lo.Level >= 6 {
+		lo.write(ctx, a...)
+	}
+}
+func (lo *Logger) write(ctx context.Context, a ...any) {
+	msg, err := lo.Formatter.Format(&Entry{
+		Context: ctx,
+		Message: a,
+		Level:   lo.Level,
 	})
 	if err != nil {
 		panic("Format错误")
@@ -173,18 +217,18 @@ func (gl *gromLogger) LogMode(logLevel gormLog.LogLevel) gormLog.Interface {
 	return &gromLogger{}
 }
 func (gl *gromLogger) Info(ctx context.Context, format string, args ...interface{}) {
-	std.Info(ctx, format, args...)
+	std.Infof(ctx, format, args...)
 }
 func (gl *gromLogger) Warn(ctx context.Context, format string, args ...interface{}) {
-	std.Warn(ctx, format, args...)
+	std.Warnf(ctx, format, args...)
 }
 func (gl *gromLogger) Error(ctx context.Context, format string, args ...interface{}) {
-	std.Error(ctx, format, args...)
+	std.Errorf(ctx, format, args...)
 }
 func (gl *gromLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	nownow := time.Now()
 	usedTime := nownow.Sub(begin).Milliseconds()
 	sql, rowsAffected := fc()
 	msg := fmt.Sprintf("sql:[%s] rows:[%d] %dms", sql, rowsAffected, usedTime)
-	std.Trace(ctx, msg)
+	std.Tracef(ctx, msg)
 }

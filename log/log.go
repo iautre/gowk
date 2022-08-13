@@ -18,20 +18,39 @@ func SetMongo(m *mongo.Database) {
 }
 
 //日志使用
-func Info(ctx context.Context, format string, a ...any) {
-	std.Info(ctx, format, a...)
+func Fatalf(ctx context.Context, format string, a ...any) {
+	std.Fatalf(ctx, format, a...)
 }
-func Warn(ctx context.Context, format string, a ...any) {
-	std.Warn(ctx, format, a...)
+func Errorf(ctx context.Context, format string, a ...any) {
+	std.Errorf(ctx, format, a...)
+}
+func Warnf(ctx context.Context, format string, a ...any) {
+	std.Warnf(ctx, format, a...)
+}
+func Infof(ctx context.Context, format string, a ...any) {
+	std.Infof(ctx, format, a...)
+}
+func Debugf(ctx context.Context, format string, a ...any) {
+	std.Debugf(ctx, format, a...)
+}
+func Tracef(ctx context.Context, format string, a ...any) {
+	std.Tracef(ctx, format, a...)
+}
+func Fatal(ctx context.Context, format string, a ...any) {
+	std.Fatal(ctx, a...)
 }
 func Error(ctx context.Context, format string, a ...any) {
-	std.Error(ctx, format, a...)
+	std.Error(ctx, a...)
+}
+func Warn(ctx context.Context, format string, a ...any) {
+	std.Warn(ctx, a...)
+}
+func Info(ctx context.Context, format string, a ...any) {
+	std.Info(ctx, a...)
+}
+func Debug(ctx context.Context, format string, a ...any) {
+	std.Debug(ctx, a...)
 }
 func Trace(ctx context.Context, format string, a ...any) {
-	std.Trace(ctx, format, a...)
-}
-
-//日志通道
-func init() {
-
+	std.Trace(ctx, a...)
 }

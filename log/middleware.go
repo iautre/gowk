@@ -39,7 +39,15 @@ func (r *requestLog) RequestInLog(c *gin.Context) {
 	spanId := uuid.NewString()
 	c.Set(SpanId, spanId)
 	c.Request.Header.Set(SpanId, spanId)
-	msg := fmt.Sprintf("%s %s %s start", c.ClientIP(), c.Request.Method, c.Request.RequestURI)
+	// msg := fmt.Sprintf("%s %s %s Header: %v Body: %v start", c.ClientIP(), c.Request.Method, c.Request.RequestURI, c.Request.Header, c.Request.Body)
+	msg := &H{
+		"type":   "start",
+		"ip":     c.ClientIP(),
+		"method": c.Request.Method,
+		"uri":    c.Request.RequestURI,
+		"header": c.Request.Header,
+		"body":   c.Request.Body,
+	}
 	std.Trace(c, msg)
 }
 
