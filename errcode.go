@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/iautre/gowk/log"
 )
 
 type ErrorCode struct {
@@ -91,13 +92,13 @@ func (e *ErrorCode) Success(c *gin.Context, data any) {
 //失败消息
 func (e *ErrorCode) Fail(c *gin.Context, code *ErrorCode, err error) {
 	if err != nil {
-		Log().Error(c, err.Error())
+		log.Errorf(c, err.Error())
 	}
 	res := &ErrorCode{
 		Code: code.Code,
 		Msg:  code.Msg,
 	}
-	Log().Error(c, fmt.Sprintf("result: %v", string(e.Message(res, nil))))
+	log.Errorf(c, fmt.Sprintf("result: %v", string(e.Message(res, nil))))
 	c.JSON(http.StatusOK, res)
 	c.Abort()
 }

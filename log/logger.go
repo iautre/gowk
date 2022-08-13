@@ -211,24 +211,26 @@ func (df *DefaultFormatter) Format(entry *Entry) (*H, error) {
 	return msg, nil
 }
 
-type gromLogger struct{}
+type GromLogger struct{}
 
-func (gl *gromLogger) LogMode(logLevel gormLog.LogLevel) gormLog.Interface {
-	return &gromLogger{}
+func (gl *GromLogger) LogMode(logLevel gormLog.LogLevel) gormLog.Interface {
+	return &GromLogger{}
 }
-func (gl *gromLogger) Info(ctx context.Context, format string, args ...interface{}) {
+func (gl *GromLogger) Info(ctx context.Context, format string, args ...interface{}) {
 	std.Infof(ctx, format, args...)
 }
-func (gl *gromLogger) Warn(ctx context.Context, format string, args ...interface{}) {
+func (gl *GromLogger) Warn(ctx context.Context, format string, args ...interface{}) {
 	std.Warnf(ctx, format, args...)
 }
-func (gl *gromLogger) Error(ctx context.Context, format string, args ...interface{}) {
+func (gl *GromLogger) Error(ctx context.Context, format string, args ...interface{}) {
 	std.Errorf(ctx, format, args...)
 }
-func (gl *gromLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+func (gl *GromLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	nownow := time.Now()
 	usedTime := nownow.Sub(begin).Milliseconds()
 	sql, rowsAffected := fc()
 	msg := fmt.Sprintf("sql:[%s] rows:[%d] %dms", sql, rowsAffected, usedTime)
 	std.Tracef(ctx, msg)
 }
+
+type GinLogger struct{}
