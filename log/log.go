@@ -36,21 +36,21 @@ func Debugf(ctx context.Context, format string, a ...any) {
 func Tracef(ctx context.Context, format string, a ...any) {
 	std.Tracef(ctx, format, a...)
 }
-func Fatal(ctx context.Context, format string, a ...any) {
-	std.Fatal(ctx, a...)
+func Fatal(ctx context.Context, a any) {
+	std.Fatal(ctx, a)
 }
-func Error(ctx context.Context, format string, a ...any) {
-	std.Error(ctx, a...)
+func Error(ctx context.Context, a any) {
+	std.Error(ctx, a)
 }
-func Warn(ctx context.Context, format string, a ...any) {
-	std.Warn(ctx, a...)
+func Warn(ctx context.Context, a any) {
+	std.Warn(ctx, a)
 }
-func Info(ctx context.Context, format string, a ...any) {
-	std.Info(ctx, a...)
+func Info(ctx context.Context, a any) {
+	std.Info(ctx, a)
 }
-func Debug(ctx context.Context, format string, a ...any) {
-	std.Debug(ctx, a...)
+func Debug(ctx context.Context, a any) {
+	std.Debug(ctx, a)
 }
-func Trace(ctx context.Context, format string, a ...any) {
-	std.Trace(ctx, a...)
+func Trace(ctx context.Context, a any) {
+	std.Trace(ctx, a)
 }

@@ -77,72 +77,61 @@ func (lo *Logger) Fatalf(ctx context.Context, format string, a ...any) {
 }
 func (lo *Logger) Errorf(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 2 {
-		lo.writef(ctx, format, a...)
+		lo.write(ctx, fmt.Sprintf(format, a...))
 	}
 }
 func (lo *Logger) Warnf(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 3 {
-		lo.writef(ctx, format, a...)
+		lo.write(ctx, fmt.Sprintf(format, a...))
 	}
 }
 func (lo *Logger) Infof(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 4 {
-		lo.writef(ctx, format, a...)
+		lo.write(ctx, fmt.Sprintf(format, a...))
 	}
 }
 func (lo *Logger) Debugf(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 5 {
-		lo.writef(ctx, format, a...)
+		lo.write(ctx, fmt.Sprintf(format, a...))
 	}
 }
 func (lo *Logger) Tracef(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 6 {
-		lo.writef(ctx, format, a...)
+		lo.write(ctx, fmt.Sprintf(format, a...))
 	}
 }
 
-func (lo *Logger) writef(ctx context.Context, format string, a ...any) {
-	msg, err := lo.Formatter.Format(&Entry{
-		Context: ctx,
-		Message: fmt.Sprintf(format, a...),
-		Level:   lo.Level,
-	})
-	if err != nil {
-		panic("Format错误")
-	}
-	lo.ch <- msg
-}
-func (lo *Logger) Fatal(ctx context.Context, a ...any) {
+func (lo *Logger) Fatal(ctx context.Context, a any) {
 	if lo.Level >= 1 {
-		lo.write(ctx, a...)
+		lo.write(ctx, a)
 	}
 }
-func (lo *Logger) Error(ctx context.Context, a ...any) {
+func (lo *Logger) Error(ctx context.Context, a any) {
 	if lo.Level >= 2 {
-		lo.write(ctx, a...)
+		lo.write(ctx, a)
 	}
 }
-func (lo *Logger) Warn(ctx context.Context, a ...any) {
+func (lo *Logger) Warn(ctx context.Context, a any) {
 	if lo.Level >= 3 {
-		lo.write(ctx, a...)
+		lo.write(ctx, a)
 	}
 }
-func (lo *Logger) Info(ctx context.Context, a ...any) {
+func (lo *Logger) Info(ctx context.Context, a any) {
 	if lo.Level >= 4 {
-		lo.write(ctx, a...)
+		lo.write(ctx, a)
 	}
 }
-func (lo *Logger) Debug(ctx context.Context, a ...any) {
+func (lo *Logger) Debug(ctx context.Context, a any) {
 	if lo.Level >= 5 {
-		lo.write(ctx, a...)
+		lo.write(ctx, a)
 	}
 }
-func (lo *Logger) Trace(ctx context.Context, a ...any) {
+func (lo *Logger) Trace(ctx context.Context, a any) {
 	if lo.Level >= 6 {
-		lo.write(ctx, a...)
+		lo.write(ctx, a)
 	}
 }
-func (lo *Logger) write(ctx context.Context, a ...any) {
+func (lo *Logger) write(ctx context.Context, a any) {
 	msg, err := lo.Formatter.Format(&Entry{
 		Context: ctx,
 		Message: a,
