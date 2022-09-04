@@ -2,32 +2,25 @@ package gowk
 
 import (
 	"fmt"
-	"sync"
+	logs "log"
 	"time"
 
+	"github.com/iautre/gowk/conf"
 	"github.com/iautre/gowk/log"
 	gromMysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
 
-type mysql struct {
+type mysqlDB struct {
 	dbs map[string]*gorm.DB
 }
 
-var mysqls *mysql
-
-func initMysql() {
-	dbConfs := Conf().GetAllDB("mysql")
-	if len(dbConfs) > 0 {
-		mysqls = &mysql{}
-		mysqls.initAllDB(dbConfs)
-	}
-}
+var mysqls *mysqlDB
 
 func Mysql(names ...string) *gorm.DB {
 	if mysqls == nil {
-		panic("未配置数据库")
+		logs.Panic("未配置数据库")
 	}
 	if len(names) == 0 {
 		if db, ok := mysqls.dbs["default"]; ok {
@@ -40,22 +33,28 @@ func Mysql(names ...string) *gorm.DB {
 	if db, ok := mysqls.dbs[names[0]]; ok {
 		return db
 	}
-	panic("未找到配置数据库")
+	logs.Panic("未找到配置数据库")
+	return nil
 }
 
-func (m *mysql) initAllDB(dbConfs map[string]*databaseConf) {
-	m.dbs = make(map[string]*gorm.DB)
-	var wg sync.WaitGroup
-	wg.Add(len(dbConfs))
-	for key, dbConf := range dbConfs {
-		go func(m *mysql, key string, dbConf *databaseConf) {
-			defer wg.Done()
-			m.dbs[key] = m.initDB(dbConf)
-		}(m, key, dbConf)
+func (m *mysqlDB) Init(name string, dbConf *conf.MysqlConf, reset bool) {
+	if name == "" {
+		name = "default"
 	}
-	wg.Wait()
+	if dbConf == nil {
+		dbConf = conf.Mysql
+	}
+	if m == nil {
+		m = &mysqlDB{
+			dbs: make(map[string]*gorm.DB),
+		}
+	}
+	if _, ok := m.dbs[name]; !ok || reset {
+		m.dbs[name] = m.initDB(dbConf)
+	}
 }
-func (m *mysql) initDB(dbConf *databaseConf) *gorm.DB {
+
+func (m *mysqlDB) initDB(dbConf *conf.MysqlConf) *gorm.DB {
 	dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
 		dbConf.User,
 		dbConf.Password,
@@ -71,11 +70,11 @@ func (m *mysql) initDB(dbConf *databaseConf) *gorm.DB {
 	})
 	//db.SetLogger(util.Log())
 	if err != nil {
-		panic(err)
+		logs.Panic(err)
 	}
 	sqlDB, err := gdb.DB()
 	if err != nil {
-		panic(err)
+		logs.Panic(err)
 	}
 	// SetMaxIdleConns 设置空闲连接池中连接的最大数量
 	sqlDB.SetMaxIdleConns(10)

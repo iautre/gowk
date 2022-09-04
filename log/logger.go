@@ -72,7 +72,7 @@ func New() *Logger {
 }
 func (lo *Logger) Fatalf(ctx context.Context, format string, a ...any) {
 	if lo.Level >= 1 {
-		lo.writef(ctx, format, a...)
+		lo.write(ctx, fmt.Sprintf(format, a...))
 	}
 }
 func (lo *Logger) Errorf(ctx context.Context, format string, a ...any) {
