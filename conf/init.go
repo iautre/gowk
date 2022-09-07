@@ -7,38 +7,6 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-type conf map[string]any
-
-type MongoConf struct {
-	User        string `ini:"user"`
-	Password    string `ini:"password"`
-	Host        string `ini:"host"`
-	Name        string `ini:"name"`
-	TablePrefix string `ini:"table_prefix"`
-	Port        int    `ini:"port"`
-	MaxPoolSize uint64 `ini:"max_pool_size"`
-}
-type MysqlConf struct {
-	User        string `ini:"user"`
-	Password    string `ini:"password"`
-	Host        string `ini:"host"`
-	Name        string `ini:"name"`
-	TablePrefix string `ini:"table_prefix"`
-	Port        int    `ini:"port"`
-	MaxPoolSize uint64 `ini:"max_pool_size"`
-}
-type ServerConf struct {
-	Addr string `ini:"addr"`
-}
-
-var (
-	confs  conf
-	cfg    *ini.File
-	Mysql  *MysqlConf
-	Mongo  *MongoConf
-	Server *ServerConf
-)
-
 func init() {
 	Init("conf.ini")
 }
@@ -49,11 +17,12 @@ func Init(name string) {
 	// 	e, _ := os.Executable()
 	// 	name = filepath.Join(filepath.Dir(e), name)
 	// }
-	cfg, err := ini.InsensitiveLoad(name)
+	cfgTmp, err := ini.InsensitiveLoad(name)
 	if err != nil {
 		fmt.Printf("Fail to read file: %v", err)
 		os.Exit(1)
 	}
+	cfg = cfgTmp
 	if cfg.HasSection("mysql") {
 		Mysql = &MysqlConf{}
 		cfg.Section("mysql").MapTo(Mysql)
