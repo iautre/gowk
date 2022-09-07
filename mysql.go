@@ -16,7 +16,7 @@ type mysqlDB struct {
 	dbs map[string]*gorm.DB
 }
 
-var mysqls *mysqlDB
+var mysqls *mysqlDB = &mysqlDB{}
 
 func Mysql(names ...string) *gorm.DB {
 	if mysqls == nil {
@@ -38,16 +38,17 @@ func Mysql(names ...string) *gorm.DB {
 }
 
 func (m *mysqlDB) Init(name string, dbConf *conf.MysqlConf, reset bool) {
+	if mysqls == nil {
+		mysqls = &mysqlDB{}
+	}
 	if name == "" {
 		name = "default"
 	}
 	if dbConf == nil {
 		dbConf = conf.Mysql
 	}
-	if m == nil {
-		m = &mysqlDB{
-			dbs: make(map[string]*gorm.DB),
-		}
+	if m.dbs == nil {
+		m.dbs = make(map[string]*gorm.DB)
 	}
 	if _, ok := m.dbs[name]; !ok || reset {
 		m.dbs[name] = m.initDB(dbConf)

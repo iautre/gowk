@@ -61,8 +61,7 @@ func Init(name string) {
 
 	if cfg.HasSection("mongo") {
 		Mongo = &MongoConf{}
-		fff := cfg.Section("mongo")
-		fff.MapTo(Mongo)
+		cfg.Section("mongo").MapTo(Mongo)
 	}
 	if cfg.HasSection("server") {
 		Server = &ServerConf{}
@@ -72,7 +71,7 @@ func Init(name string) {
 	confs = make(conf)
 	for _, se := range cfg.Sections() {
 		for _, key := range se.Keys() {
-			confs[fmt.Sprintf("%s.%s", se.Name(), key)] = se.Key(key.String())
+			confs[fmt.Sprintf("%s.%s", se.Name(), key.Name())] = key.Value()
 		}
 	}
 }

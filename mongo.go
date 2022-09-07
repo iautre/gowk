@@ -3,7 +3,6 @@ package gowk
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/iautre/gowk/conf"
@@ -13,12 +12,10 @@ import (
 
 type mongoDB struct {
 	dbs map[string]*mongo.Client
-	mu  sync.Mutex
 }
 
 var (
-	mongos    *mongoDB
-	mongoOnce sync.Once
+	mongos *mongoDB = &mongoDB{}
 )
 
 func Mongo(names ...string) *mongo.Client {
@@ -46,10 +43,8 @@ func (m *mongoDB) Init(name string, dbConf *conf.MongoConf, reset bool) {
 	if dbConf == nil {
 		dbConf = conf.Mongo
 	}
-	if m == nil {
-		m = &mongoDB{
-			dbs: make(map[string]*mongo.Client),
-		}
+	if m.dbs == nil {
+		m.dbs = make(map[string]*mongo.Client)
 	}
 	if _, ok := m.dbs[name]; !ok || reset {
 		m.dbs[name] = m.initDB(dbConf)

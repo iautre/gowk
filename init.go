@@ -6,20 +6,24 @@ import (
 	"github.com/iautre/gowk/conf"
 )
 
-var once sync.Once
+// var once sync.Once
 
 func init() {
 	var wg sync.WaitGroup
-	wg.Add(2)
+
 	if conf.Mysql != nil {
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			mysqls.Init("", conf.Mysql, false)
 		}()
 	}
-	go func() {
-		defer wg.Done()
-		mongos.Init("", conf.Mongo, false)
-	}()
+	if conf.Mongo != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			mongos.Init("", conf.Mongo, false)
+		}()
+	}
 	wg.Wait()
 }
