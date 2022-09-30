@@ -14,7 +14,7 @@ type Time struct {
 }
 
 const (
-	timeFormart = "2006-01-02 15:04:05"
+	timeFormart = "2006-01-02 15:04:05.000"
 )
 
 // 实现它的json序列化方法
@@ -61,7 +61,7 @@ func (t *Time) Scan(v interface{}) error {
 	return fmt.Errorf("can not convert %v to timestamp", v)
 }
 
-//实现 bson 的 序列化方法
+// 实现 bson 的 序列化方法
 func (t *Time) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	timestampt := t.Time.Format(timeFormart)
 	retByte := make([]byte, 0)
@@ -69,7 +69,7 @@ func (t *Time) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	return bsontype.String, retByte, nil
 }
 
-//实现 bson 的 反序列化方法
+// 实现 bson 的 反序列化方法
 func (t *Time) UnmarshalBSONValue(ty bsontype.Type, data []byte) error {
 	if ty == bsontype.String {
 		if readString, _, ok := bsoncore.ReadString(data); ok {

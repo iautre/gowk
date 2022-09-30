@@ -143,14 +143,19 @@ func (lo *Logger) write(ctx context.Context, a any) {
 	lo.ch <- msg
 }
 
-//创建日志协程，并消化日志
+// 创建日志协程，并消化日志
 func (lo *Logger) createLogRoutinue() {
 	go func() {
 		for {
 			h := <-lo.ch
-			_, err := lo.Mongo.Collection("log").InsertOne(context.TODO(), h)
-			if err != nil {
-				_ = fmt.Errorf("%s", err.Error())
+			if logType == "console" {
+				n := fmt.Sprintf("%v", h)
+				fmt.Println(n)
+			} else {
+				_, err := lo.Mongo.Collection("log").InsertOne(context.TODO(), h)
+				if err != nil {
+					_ = fmt.Errorf("%s", err.Error())
+				}
 			}
 		}
 	}()
