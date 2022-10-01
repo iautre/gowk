@@ -65,7 +65,7 @@ func New() *Logger {
 	lo := &Logger{
 		Level:     ErrorLevel,
 		Formatter: &DefaultFormatter{},
-		ch:        make(chan *H, 10),
+		ch:        make(chan *H, 100),
 	}
 	lo.createLogRoutinue()
 	return lo
@@ -200,7 +200,7 @@ func (df *DefaultFormatter) Format(entry *Entry) (*H, error) {
 		"pspanId":   pspanId,
 		"spanId":    spanId,
 		"level":     entry.Level.ToString(),
-		"message":   entry.Message,
+		"message":   fmt.Sprintf("%v", entry.Message),
 	}
 	return msg, nil
 }
