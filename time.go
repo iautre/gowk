@@ -14,14 +14,14 @@ type Time struct {
 }
 
 const (
-	timeFormart = "2006-01-02 15:04:05.000"
+	TimeFormart = "2006-01-02 15:04:05.000"
 )
 
 // 实现它的json序列化方法
 func (t Time) MarshalJSON() ([]byte, error) {
 	var timeStr = ""
 	if !t.IsZero() {
-		timeStr = t.Format(timeFormart)
+		timeStr = t.Format(TimeFormart)
 	}
 	var stamp = fmt.Sprintf("\"%s\"", timeStr)
 	return []byte(stamp), nil
@@ -33,7 +33,7 @@ func (t *Time) UnmarshalJSON(data []byte) (err error) {
 		*t = Time{}
 		return
 	}
-	now, err := time.ParseInLocation("\""+timeFormart+"\"", timeStr, time.Local)
+	now, err := time.ParseInLocation("\""+TimeFormart+"\"", timeStr, time.Local)
 	*t = Time{now}
 	return
 }
@@ -63,7 +63,7 @@ func (t *Time) Scan(v interface{}) error {
 
 // 实现 bson 的 序列化方法
 func (t *Time) MarshalBSONValue() (bsontype.Type, []byte, error) {
-	timestampt := t.Time.Format(timeFormart)
+	timestampt := t.Time.Format(TimeFormart)
 	retByte := make([]byte, 0)
 	retByte = bsoncore.AppendString(retByte, timestampt)
 	return bsontype.String, retByte, nil
@@ -73,7 +73,7 @@ func (t *Time) MarshalBSONValue() (bsontype.Type, []byte, error) {
 func (t *Time) UnmarshalBSONValue(ty bsontype.Type, data []byte) error {
 	if ty == bsontype.String {
 		if readString, _, ok := bsoncore.ReadString(data); ok {
-			now, err := time.ParseInLocation(timeFormart, readString, time.Local)
+			now, err := time.ParseInLocation(TimeFormart, readString, time.Local)
 			if err != nil {
 				return err
 			}
