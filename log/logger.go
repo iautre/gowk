@@ -148,14 +148,14 @@ func (lo *Logger) createLogRoutinue() {
 	go func() {
 		for {
 			h := <-lo.ch
-			if logType == "console" {
-				n := fmt.Sprintf("%v", h)
-				fmt.Println(n)
-			} else {
+			if logType == "mongo" {
 				_, err := lo.Mongo.Collection("log").InsertOne(context.TODO(), h)
 				if err != nil {
 					_ = fmt.Errorf("%s", err.Error())
 				}
+			} else {
+				n := fmt.Sprintf("%v", h)
+				fmt.Println(n)
 			}
 		}
 	}()

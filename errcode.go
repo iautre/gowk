@@ -33,6 +33,12 @@ func NewErrorCode(code int, msg string) *ErrorCode {
 		Msg:  msg,
 	}
 }
+func NewError(msg string) *ErrorCode {
+	return &ErrorCode{
+		Code: 99,
+		Msg:  msg,
+	}
+}
 
 // 错误码
 // 1- 系统
@@ -89,7 +95,7 @@ func (e *ErrorCode) Success(c *gin.Context, data any) {
 	c.Abort()
 }
 
-//失败消息
+// 失败消息
 func (e *ErrorCode) Fail(c *gin.Context, code *ErrorCode, err error) {
 	if err != nil {
 		log.Errorf(c, err.Error())
