@@ -3,7 +3,6 @@ package log
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"runtime"
 	"time"
 
@@ -182,7 +181,7 @@ func (df *DefaultFormatter) Format(entry *Entry) (*H, error) {
 	var function string
 	var line int
 	if entry.Caller != nil {
-		file = filepath.Base(entry.Caller.File)
+		file = entry.Caller.File
 		line = entry.Caller.Line
 		function = entry.Caller.Function
 	}
