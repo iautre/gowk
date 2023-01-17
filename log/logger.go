@@ -3,6 +3,8 @@ package log
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,6 +15,7 @@ var (
 	std = New()
 )
 
+const skip = 3
 const (
 	TraceId string = "traceId"
 	SpanId  string = "spanId"
@@ -132,10 +135,17 @@ func (lo *Logger) Trace(ctx context.Context, a any) {
 	}
 }
 func (lo *Logger) write(ctx context.Context, a any) {
+	caller := &runtime.Frame{}
+	if pc, file, lineNo, ok := runtime.Caller(skip); ok {
+		caller.File = file
+		caller.Line = lineNo
+		caller.Function = runtime.FuncForPC(pc).Name()
+	}
 	msg, err := lo.Formatter.Format(&Entry{
 		Context: ctx,
 		Message: a,
 		Level:   lo.Level,
+		Caller:  caller,
 	})
 	if err != nil {
 		panic("Format错误")
@@ -168,11 +178,13 @@ type DefaultFormatter struct{}
 
 func (df *DefaultFormatter) Format(entry *Entry) (*H, error) {
 	timestamp := time.Now().Format("2006-01-02 15:04:05.000")
-	//var file string
-	//var len int
+	var file string
+	var function string
+	var line int
 	if entry.Caller != nil {
-		//file = filepath.Base(entry.Caller.File)
-		//len = entry.Caller.Line
+		file = filepath.Base(entry.Caller.File)
+		line = entry.Caller.Line
+		function = entry.Caller.Function
 	}
 	ctx := entry.Context
 	//fmt.Println(entry.Data)
@@ -194,6 +206,7 @@ func (df *DefaultFormatter) Format(entry *Entry) (*H, error) {
 	// 	spanId,
 	// 	strings.ToUpper(entry.Level.ToString()),
 	// 	entry.Message)
+	// _, file, line, _ := runtime.Caller(2)
 	msg := &H{
 		"timestamp": timestamp,
 		"traceId":   traceId,
@@ -201,6 +214,7 @@ func (df *DefaultFormatter) Format(entry *Entry) (*H, error) {
 		"spanId":    spanId,
 		"level":     entry.Level.ToString(),
 		"message":   fmt.Sprintf("%v", entry.Message),
+		"func":      fmt.Sprintf("%s %s %d", file, function, line),
 	}
 	return msg, nil
 }
