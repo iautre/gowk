@@ -17,7 +17,9 @@ type ErrorCode struct {
 }
 
 func Panic(e *ErrorCode, errStr ...string) {
-	e.Msg = strings.Join(errStr, "")
+	if len(errStr) > 0 {
+		e.Msg = strings.Join(errStr, "")
+	}
 	data, err := json.Marshal(e)
 	if err != nil {
 		panic(err.Error())
