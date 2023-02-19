@@ -6,7 +6,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.8.2
 	github.com/google/uuid v1.3.0
-	github.com/iautre/snowflake v0.0.1
+	github.com/iautre/snowflake v1.0.0
 	github.com/sony/sonyflake v1.1.0
 	go.mongodb.org/mongo-driver v1.11.2
 	gopkg.in/ini.v1 v1.67.0

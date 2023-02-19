@@ -28,8 +28,8 @@ github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/iautre/snowflake v0.0.1 h1:LAIH7lPdNRo3S0jhWd9jwRfjD0V4Amm4PAV941rPJqg=
-github.com/iautre/snowflake v0.0.1/go.mod h1:dLaWuJwU2csD3GYCLsf77NTmDu2JlyyHQ9g3ykQv3Rg=
+github.com/iautre/snowflake v1.0.0 h1:xTCyLJ2lLlvnat9+81Gf2mfZT37x8xl8TIri6i4wpX4=
+github.com/iautre/snowflake v1.0.0/go.mod h1:lM6bONdopaz72wZyqyEEELWWKtMAjOGtiI6Ln4quVjc=
 github.com/jinzhu/inflection v1.0.0 h1:K317FqzuhWc8YvSVlFMCCUb36O/S9MCKRDI7QkRKD/E=
 github.com/jinzhu/inflection v1.0.0/go.mod h1:h+uFLlag+Qp1Va5pdKtLDYj+kHp5pxUVkryuEj+Srlc=
 github.com/jinzhu/now v1.1.4/go.mod h1:d3SSVoowX0Lcu0IBviAWJpolVfI5UJVZZ7cO71lE/z8=
