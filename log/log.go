@@ -2,55 +2,47 @@ package log
 
 import (
 	"context"
+	"fmt"
 
-	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/exp/slog"
 )
 
-func Init(m *mongo.Database) {
-	SetMongo(m)
+const defaultDepth = 1
+
+func SetLevel(level slog.Level) {
+	// level = level
 }
 
-func SetLevel(level Level) {
-	std.Level = level
-}
-func SetMongo(m *mongo.Database) {
-	std.Mongo = m
-}
-
-//日志使用
-func Fatalf(ctx context.Context, format string, a ...any) {
-	std.Fatalf(ctx, format, a...)
-}
+// 日志使用
 func Errorf(ctx context.Context, format string, a ...any) {
-	std.Errorf(ctx, format, a...)
+	std.LogAttrsDepth(defaultDepth, slog.LevelError, fmt.Sprintf(format, a...), GetContextAttrs(ctx)...)
 }
 func Warnf(ctx context.Context, format string, a ...any) {
-	std.Warnf(ctx, format, a...)
+	std.LogAttrsDepth(defaultDepth, slog.LevelWarn, fmt.Sprintf(format, a...), GetContextAttrs(ctx)...)
 }
 func Infof(ctx context.Context, format string, a ...any) {
-	std.Infof(ctx, format, a...)
+	std.LogAttrsDepth(defaultDepth, slog.LevelInfo, fmt.Sprintf(format, a...), GetContextAttrs(ctx)...)
 }
 func Debugf(ctx context.Context, format string, a ...any) {
-	std.Debugf(ctx, format, a...)
+	std.LogAttrsDepth(defaultDepth, slog.LevelDebug, fmt.Sprintf(format, a...), GetContextAttrs(ctx)...)
 }
 func Tracef(ctx context.Context, format string, a ...any) {
-	std.Tracef(ctx, format, a...)
+	std.LogAttrsDepth(defaultDepth, slog.LevelInfo, fmt.Sprintf(format, a...), GetContextAttrs(ctx)...)
 }
-func Fatal(ctx context.Context, a any) {
-	std.Fatal(ctx, a)
-}
+
 func Error(ctx context.Context, a any) {
-	std.Error(ctx, a)
+	std.LogAttrsDepth(defaultDepth, slog.LevelError, fmt.Sprintf("%v", a), GetContextAttrs(ctx)...)
 }
 func Warn(ctx context.Context, a any) {
-	std.Warn(ctx, a)
+	std.LogAttrsDepth(defaultDepth, slog.LevelWarn, fmt.Sprintf("%v", a), GetContextAttrs(ctx)...)
 }
 func Info(ctx context.Context, a any) {
-	std.Info(ctx, a)
+	std.LogAttrsDepth(defaultDepth, slog.LevelInfo, fmt.Sprintf("%v", a), GetContextAttrs(ctx)...)
 }
 func Debug(ctx context.Context, a any) {
-	std.Debug(ctx, a)
+	std.LogAttrsDepth(defaultDepth, slog.LevelDebug, fmt.Sprintf("%v", a), GetContextAttrs(ctx)...)
 }
-func Trace(ctx context.Context, a any) {
-	std.Trace(ctx, a)
+func Trace(ctx context.Context, a any, arrt ...slog.Attr) {
+	arrt = append(arrt, GetContextAttrs(ctx)...)
+	std.LogAttrsDepth(2, slog.LevelInfo, fmt.Sprintf("%v", a), arrt...)
 }

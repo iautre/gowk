@@ -9,6 +9,7 @@ require (
 	github.com/iautre/snowflake v1.0.0
 	github.com/sony/sonyflake v1.1.0
 	go.mongodb.org/mongo-driver v1.11.2
+	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
 	gopkg.in/ini.v1 v1.67.0
 	gorm.io/driver/mysql v1.4.7
 	gorm.io/gorm v1.24.5
