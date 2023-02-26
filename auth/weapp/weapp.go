@@ -1,14 +1,13 @@
 package weapp
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
 
-	"github.com/iautre/gowk/log"
+	"golang.org/x/exp/slog"
 )
 
 type Weapp struct{}
@@ -36,7 +35,7 @@ func GetAccessToken() string {
 	if token.ExpiresTime <= time.Now().Unix() {
 		t, err := weapp.GetAccessToken()
 		if err != nil {
-			log.Error(context.TODO(), err.Error())
+			slog.Error(err.Error(), err)
 		}
 		token = t
 	}

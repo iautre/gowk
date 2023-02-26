@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iautre/gowk/log"
+	"golang.org/x/exp/slog"
 )
 
 type ErrorCode struct {
@@ -23,10 +23,8 @@ func Panic(e *ErrorCode, errStr ...string) {
 	data, err := json.Marshal(e)
 	if err != nil {
 		panic(err.Error())
-		// log.Panic(err)
 	}
 	panic(string(data))
-	// log.Panic(string(data))
 }
 
 func NewErrorCode(code int, msg string) *ErrorCode {
@@ -100,13 +98,13 @@ func (e *ErrorCode) Success(c *gin.Context, data any) {
 // 失败消息
 func (e *ErrorCode) Fail(c *gin.Context, code *ErrorCode, err error) {
 	if err != nil {
-		log.Errorf(c, err.Error())
+		slog.ErrorCtx(c, err.Error(), err)
 	}
 	res := &ErrorCode{
 		Code: code.Code,
 		Msg:  code.Msg,
 	}
-	log.Errorf(c, fmt.Sprintf("result: %v", string(e.Message(res, nil))))
+	slog.WarnCtx(c, fmt.Sprintf("result: %v", string(e.Message(res, nil))), nil)
 	c.JSON(http.StatusOK, res)
 	c.Abort()
 }

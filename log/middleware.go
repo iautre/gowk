@@ -11,6 +11,10 @@ import (
 
 const (
 	StartTime string = "startTime"
+
+	TraceId string = "traceId"
+	SpanId  string = "spanId"
+	PspanId string = "pspanId"
 )
 
 func RequestMiddleware() gin.HandlerFunc {
@@ -28,6 +32,14 @@ type requestLog struct{}
 
 // 请求进入日志
 func (r *requestLog) RequestInLog(c *gin.Context) {
+	arrts := []any{
+		// {Key: "type", Value: slog.StringValue("start")},
+		slog.Attr{Key: "ip", Value: slog.StringValue(c.ClientIP())},
+		slog.Attr{Key: "method", Value: slog.StringValue(c.Request.Method)},
+		slog.Attr{Key: "uri", Value: slog.StringValue(c.Request.RequestURI)},
+		slog.Attr{Key: "header", Value: slog.AnyValue(c.Request.Header)},
+		slog.Attr{Key: "body", Value: slog.AnyValue(c.Request.Body)},
+	}
 	startTime := time.Now()
 	c.Set(StartTime, startTime)
 	if traceId := c.Request.Header.Get(TraceId); traceId == "" {
@@ -43,15 +55,7 @@ func (r *requestLog) RequestInLog(c *gin.Context) {
 	c.Set(SpanId, spanId)
 	c.Request.Header.Set(SpanId, spanId)
 	// msg := fmt.Sprintf("%s %s %s Header: %v Body: %v start", c.ClientIP(), c.Request.Method, c.Request.RequestURI, c.Request.Header, c.Request.Body)
-	arrts := []slog.Attr{
-		// {Key: "type", Value: slog.StringValue("start")},
-		{Key: "ip", Value: slog.StringValue(c.ClientIP())},
-		{Key: "method", Value: slog.StringValue(c.Request.Method)},
-		{Key: "uri", Value: slog.StringValue(c.Request.RequestURI)},
-		{Key: "header", Value: slog.AnyValue(c.Request.Header)},
-		{Key: "body", Value: slog.AnyValue(c.Request.Body)},
-	}
-	Trace(c, "start", arrts...)
+	slog.InfoCtx(c, "start", arrts...)
 }
 
 // 请求输出日志
@@ -61,13 +65,13 @@ func (r *requestLog) RequestOutLog(c *gin.Context, body *bytes.Buffer) {
 	startTime, _ := c.Get(StartTime)
 	usedTime := endTime.Sub(startTime.(time.Time)).Milliseconds()
 	// msg := fmt.Sprintf("%d end %dms", c.Writer.Status(), usedTime)
-	arrts := []slog.Attr{
+	arrts := []any{
 		// {Key: "type", Value: slog.StringValue("start")},
-		{Key: "status", Value: slog.IntValue(c.Writer.Status())},
-		{Key: "usedTime", Value: slog.Int64Value(usedTime)},
-		{Key: "responeBody", Value: slog.StringValue(body.String())},
+		slog.Attr{Key: "status", Value: slog.IntValue(c.Writer.Status())},
+		slog.Attr{Key: "usedTime", Value: slog.Int64Value(usedTime)},
+		slog.Attr{Key: "responeBody", Value: slog.StringValue(body.String())},
 	}
-	Trace(c, "end", arrts...)
+	slog.InfoCtx(c, "end", arrts...)
 }
 
 type CustomResponseWriter struct {

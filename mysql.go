@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/iautre/gowk/conf"
-	"github.com/iautre/gowk/log"
 	gromMysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -63,7 +62,7 @@ func (m *mysqlDB) initDB(dbConf *conf.MysqlConf) *gorm.DB {
 		dbConf.Port,
 		dbConf.Name)
 	gdb, err := gorm.Open(gromMysql.Open(dsn), &gorm.Config{
-		Logger: &log.GromLogger{},
+		// Logger: &log.GromLogger{},
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   dbConf.TablePrefix,
 			SingularTable: true,

@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iautre/gowk/log"
+	"golang.org/x/exp/slog"
 )
 
 type middleware struct{}
@@ -26,7 +26,7 @@ func Middleware() *middleware {
 	return middlewares
 }
 
-//	全局统一处理错误
+// 全局统一处理错误
 func (m *middleware) Recover() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
@@ -44,11 +44,11 @@ func (m *middleware) Recover() gin.HandlerFunc {
 					Response().Fail(c, errMsg, nil)
 					// c.Abort()
 				case runtime.Error: // 运行时错误
-					log.Errorf(c, (err.(runtime.Error)).Error())
+					slog.ErrorCtx(c, (err.(runtime.Error)).Error(), err.(runtime.Error))
 					Response().Fail(c, ERR_UN, nil)
 					// c.Abort()
 				default: // 非运行时错误
-					log.Errorf(c, fmt.Sprintf("%v", err))
+					slog.ErrorCtx(c, fmt.Sprintf("%v", err), err.(error))
 					Response().Fail(c, ERR_UN, nil)
 				}
 			}
