@@ -16,10 +16,10 @@ const (
 func RequestMiddleware() gin.HandlerFunc {
 	r := &requestLog{}
 	return func(c *gin.Context) {
-		r.RequestInLog(c)
 		bw := &CustomResponseWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
-		defer r.RequestOutLog(c, bw.body)
 		c.Writer = bw
+		r.RequestInLog(c)
+		defer r.RequestOutLog(c, bw.body)
 		c.Next()
 	}
 }
@@ -67,7 +67,6 @@ func (r *requestLog) RequestOutLog(c *gin.Context, body *bytes.Buffer) {
 		{Key: "usedTime", Value: slog.Int64Value(usedTime)},
 		{Key: "responeBody", Value: slog.StringValue(body.String())},
 	}
-
 	Trace(c, "end", arrts...)
 }
 
