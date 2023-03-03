@@ -46,16 +46,18 @@ func (r *requestLog) RequestInLog(ctx *gin.Context) {
 	if traceId == "" {
 		traceId = uuid.NewString()
 	}
-	spanId := ctx.Request.Header.Get(SpanId)
-	if spanId != "" {
-		ctx.Set(PspanId, spanId)
-	}
 	ctx.Set(TraceId, traceId)
-	ctx.Set(SpanId, spanId)
-	ctx.Request.Header.Set(PspanId, spanId)
-	spanId = uuid.NewString()
 	ctx.Request.Header.Set(TraceId, traceId)
+
+	pspanId := ctx.Request.Header.Get(SpanId)
+	if pspanId != "" {
+		ctx.Set(PspanId, pspanId)
+		ctx.Request.Header.Set(PspanId, pspanId)
+	}
+	spanId := uuid.NewString()
+	ctx.Set(SpanId, spanId)
 	ctx.Request.Header.Set(SpanId, spanId)
+
 	Trace(ctx, "start", arrts...)
 }
 
