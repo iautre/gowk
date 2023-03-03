@@ -31,47 +31,47 @@ func RequestMiddleware() gin.HandlerFunc {
 type requestLog struct{}
 
 // 请求进入日志
-func (r *requestLog) RequestInLog(c *gin.Context) {
+func (r *requestLog) RequestInLog(ctx *gin.Context) {
 	arrts := []any{
 		// {Key: "type", Value: slog.StringValue("start")},
-		slog.Attr{Key: "ip", Value: slog.StringValue(c.ClientIP())},
-		slog.Attr{Key: "method", Value: slog.StringValue(c.Request.Method)},
-		slog.Attr{Key: "uri", Value: slog.StringValue(c.Request.RequestURI)},
-		slog.Attr{Key: "header", Value: slog.AnyValue(c.Request.Header)},
-		slog.Attr{Key: "body", Value: slog.AnyValue(c.Request.Body)},
+		"ip", slog.StringValue(ctx.ClientIP()),
+		"method", slog.StringValue(ctx.Request.Method),
+		"uri", slog.StringValue(ctx.Request.RequestURI),
+		"header", slog.AnyValue(ctx.Request.Header),
+		"body", slog.AnyValue(ctx.Request.Body),
 	}
 	startTime := time.Now()
-	c.Set(StartTime, startTime)
-	if traceId := c.Request.Header.Get(TraceId); traceId == "" {
+	ctx.Set(StartTime, startTime)
+	traceId := ctx.Request.Header.Get(TraceId)
+	if traceId == "" {
 		traceId = uuid.NewString()
-		c.Set(TraceId, traceId)
-		c.Request.Header.Set(TraceId, traceId)
 	}
-	if spanId := c.Request.Header.Get(SpanId); spanId != "" {
-		c.Set(PspanId, spanId)
-		c.Request.Header.Set(PspanId, spanId)
+	spanId := ctx.Request.Header.Get(SpanId)
+	if spanId != "" {
+		ctx.Set(PspanId, spanId)
 	}
-	spanId := uuid.NewString()
-	c.Set(SpanId, spanId)
-	c.Request.Header.Set(SpanId, spanId)
-	// msg := fmt.Sprintf("%s %s %s Header: %v Body: %v start", c.ClientIP(), c.Request.Method, c.Request.RequestURI, c.Request.Header, c.Request.Body)
-	slog.InfoCtx(c, "start", arrts...)
+	ctx.Set(TraceId, traceId)
+	ctx.Set(SpanId, spanId)
+	ctx.Request.Header.Set(PspanId, spanId)
+	spanId = uuid.NewString()
+	ctx.Request.Header.Set(TraceId, traceId)
+	ctx.Request.Header.Set(SpanId, spanId)
+	Trace(ctx, "start", arrts...)
 }
 
 // 请求输出日志
-func (r *requestLog) RequestOutLog(c *gin.Context, body *bytes.Buffer) {
+func (r *requestLog) RequestOutLog(ctx *gin.Context, body *bytes.Buffer) {
 	// after request
 	endTime := time.Now()
-	startTime, _ := c.Get(StartTime)
+	startTime, _ := ctx.Get(StartTime)
 	usedTime := endTime.Sub(startTime.(time.Time)).Milliseconds()
-	// msg := fmt.Sprintf("%d end %dms", c.Writer.Status(), usedTime)
 	arrts := []any{
 		// {Key: "type", Value: slog.StringValue("start")},
-		slog.Attr{Key: "status", Value: slog.IntValue(c.Writer.Status())},
-		slog.Attr{Key: "usedTime", Value: slog.Int64Value(usedTime)},
-		slog.Attr{Key: "responeBody", Value: slog.StringValue(body.String())},
+		"status", slog.IntValue(ctx.Writer.Status()),
+		"usedTime", slog.Int64Value(usedTime),
+		"responeBody", slog.StringValue(body.String()),
 	}
-	slog.InfoCtx(c, "end", arrts...)
+	Trace(ctx, "end", arrts...)
 }
 
 type CustomResponseWriter struct {

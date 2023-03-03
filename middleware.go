@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
+	"github.com/iautre/gowk/log"
 )
 
 type middleware struct{}
@@ -28,7 +28,7 @@ func Middleware() *middleware {
 
 // 全局统一处理错误
 func (m *middleware) Recover() gin.HandlerFunc {
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
 				switch err.(type) {
@@ -36,23 +36,25 @@ func (m *middleware) Recover() gin.HandlerFunc {
 					str, _ := err.(string)
 					var errMsg *ErrorCode
 					if err := json.Unmarshal([]byte(str), &errMsg); err != nil {
-						Response().Fail(c, ERR_UN, err)
+						log.Error(ctx, err.Error(), err)
+						Response().Fail(ctx, ERR_UN, err)
 						// c.Abort()
 						return
 					}
+					log.Error(ctx, errMsg.Msg, errMsg.err)
 					// 返回错误信息
-					Response().Fail(c, errMsg, nil)
+					Response().Fail(ctx, errMsg, nil)
 					// c.Abort()
 				case runtime.Error: // 运行时错误
-					slog.ErrorCtx(c, (err.(runtime.Error)).Error(), err.(runtime.Error))
-					Response().Fail(c, ERR_UN, nil)
+					log.Error(ctx, (err.(runtime.Error)).Error(), err.(runtime.Error))
+					Response().Fail(ctx, ERR_UN, nil)
 					// c.Abort()
 				default: // 非运行时错误
-					slog.ErrorCtx(c, fmt.Sprintf("%v", err), err.(error))
-					Response().Fail(c, ERR_UN, nil)
+					log.Error(ctx, fmt.Sprintf("%v", err), err.(error))
+					Response().Fail(ctx, ERR_UN, nil)
 				}
 			}
 		}()
-		c.Next()
+		ctx.Next()
 	}
 }

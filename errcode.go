@@ -4,26 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
+	"github.com/iautre/gowk/log"
 )
 
 type ErrorCode struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 	Data any    `json:"data,omitempty"`
+	err  error  `json:"-"`
 }
 
-func Panic(e *ErrorCode, errStr ...string) {
-	if len(errStr) > 0 {
-		e.Msg = strings.Join(errStr, "")
-	}
-	data, err := json.Marshal(e)
-	if err != nil {
-		panic(err.Error())
-	}
+func Panic(e *ErrorCode, err error) {
+	e.err = err
+	data, _ := json.Marshal(e)
 	panic(string(data))
 }
 
@@ -91,6 +86,7 @@ func (e *ErrorCode) Success(c *gin.Context, data any) {
 		Msg:  OK.Msg,
 		Data: data,
 	}
+	log.Trace(c, fmt.Sprintf("result: %v", string(e.Message(res, data))), nil)
 	c.JSON(http.StatusOK, res)
 	c.Abort()
 }
@@ -98,13 +94,13 @@ func (e *ErrorCode) Success(c *gin.Context, data any) {
 // 失败消息
 func (e *ErrorCode) Fail(c *gin.Context, code *ErrorCode, err error) {
 	if err != nil {
-		slog.ErrorCtx(c, err.Error(), err)
+		log.Error(c, err.Error(), err)
 	}
 	res := &ErrorCode{
 		Code: code.Code,
 		Msg:  code.Msg,
 	}
-	slog.WarnCtx(c, fmt.Sprintf("result: %v", string(e.Message(res, nil))), nil)
+	log.Trace(c, fmt.Sprintf("result: %v", string(e.Message(res, nil))), nil)
 	c.JSON(http.StatusOK, res)
 	c.Abort()
 }
