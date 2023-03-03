@@ -1,14 +1,19 @@
 package conf
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
 	"gopkg.in/ini.v1"
 )
 
+var confpath string
+
 func init() {
-	Init("conf.ini")
+	flag.StringVar(&confpath, "c", "conf.ini", "use default conf path")
+	flag.Parse()
+	Init(confpath)
 }
 
 func Init(name string) {
