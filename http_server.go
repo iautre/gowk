@@ -32,9 +32,9 @@ func (h *HttpServer) Run() {
 		h.Handler = &http.Server{
 			Addr:           conf.Server.Addr,
 			Handler:        h.Engine,
-			ReadTimeout:    time.Duration(10) * time.Second,
-			WriteTimeout:   time.Duration(10) * time.Second,
-			MaxHeaderBytes: 1 << uint(20),
+			ReadTimeout:    time.Duration(75) * time.Second,
+			WriteTimeout:   time.Duration(75) * time.Second,
+			MaxHeaderBytes: 1 << uint(32),
 		}
 	}
 

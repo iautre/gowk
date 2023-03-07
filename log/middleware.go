@@ -21,7 +21,7 @@ func RequestMiddleware() gin.HandlerFunc {
 	r := &requestLog{}
 	return func(c *gin.Context) {
 		bw := &CustomResponseWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
-		c.Writer = bw
+		// c.Writer = bw
 		r.RequestInLog(c)
 		defer r.RequestOutLog(c, bw.body)
 		c.Next()
@@ -71,7 +71,7 @@ func (r *requestLog) RequestOutLog(ctx *gin.Context, body *bytes.Buffer) {
 		// {Key: "type", Value: slog.StringValue("start")},
 		"status", slog.IntValue(ctx.Writer.Status()),
 		"usedTime", slog.Int64Value(usedTime),
-		"responeBody", slog.StringValue(body.String()),
+		// "responeBody", slog.StringValue(body.String()),
 	}
 	Trace(ctx, "end", arrts...)
 }
