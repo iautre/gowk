@@ -1,8 +1,8 @@
 package gowk
 
 import (
-	"encoding/json"
 	"fmt"
+	"net/http"
 	"runtime"
 	"sync"
 
@@ -28,33 +28,54 @@ func Middleware() *middleware {
 
 // 全局统一处理错误
 func (m *middleware) Recover() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				switch err.(type) {
-				case string: // 自定义异常
-					str, _ := err.(string)
-					var errMsg *ErrorCode
-					if err := json.Unmarshal([]byte(str), &errMsg); err != nil {
-						log.Error(ctx, err.Error(), err)
-						Response().Fail(ctx, ERR_UN, err)
-						// c.Abort()
-						return
-					}
-					log.Error(ctx, errMsg.Msg, errMsg.err)
+				switch tp := err.(type) {
+				case *ErrorCode: // 自定义异常
+					e := err.(*ErrorCode)
+					log.Error(c, e.Msg, e.err)
 					// 返回错误信息
-					Response().Fail(ctx, errMsg, nil)
+					Response().Fail(c, e, e.err)
 					// c.Abort()
 				case runtime.Error: // 运行时错误
-					log.Error(ctx, (err.(runtime.Error)).Error(), err.(runtime.Error))
-					Response().Fail(ctx, ERR_UN, nil)
+					e := err.(runtime.Error)
+					log.Error(c, e.Error(), e)
+					Response().Fail(c, ERR, nil)
 					// c.Abort()
 				default: // 非运行时错误
-					log.Error(ctx, fmt.Sprintf("%v", err), err.(error))
-					Response().Fail(ctx, ERR_UN, nil)
+					log.Error(c, fmt.Sprintf("recover type: %s", tp), nil)
+					log.Error(c, fmt.Sprintf("%v", err), nil)
+					Response().Fail(c, ERR, nil)
 				}
 			}
 		}()
-		ctx.Next()
+		c.Next()
+	}
+}
+
+// 返回http原生状态码
+func (m *middleware) Recover2() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				switch tp := err.(type) {
+				case *ErrorCode: // 自定义异常
+					e := err.(*ErrorCode)
+					log.Error(c, e.Msg, e.err)
+					c.String(e.Code, e.Msg)
+				case runtime.Error: // 运行时错误
+					e := err.(runtime.Error)
+					log.Error(c, e.Error(), e)
+					c.String(http.StatusInternalServerError, err.(runtime.Error).Error())
+				default: // 非运行时错误
+					log.Error(c, fmt.Sprintf("recover type: %s", tp), nil)
+					log.Error(c, fmt.Sprintf("%v", err), nil)
+					c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
+				}
+				c.Abort()
+			}
+		}()
+		c.Next()
 	}
 }
