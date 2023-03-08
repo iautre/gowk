@@ -16,10 +16,11 @@ type ErrorCode struct {
 	err  error  `json:"-"`
 }
 
-func Panic(e *ErrorCode, err error) {
-	e.err = err
-	data, _ := json.Marshal(e)
-	panic(string(data))
+func Panic(e *ErrorCode, err ...error) {
+	if len(err) > 0 {
+		e.err = err[0]
+	}
+	panic(e)
 }
 
 func NewErrorCode(code int, msg string) *ErrorCode {
@@ -43,25 +44,19 @@ func NewError(msg string) *ErrorCode {
 // 22-- app类
 // 23-- 用户类
 // 24 -- 公共
+// 25 -- 数据库类
 
 var (
-	ERR    = NewErrorCode(-1, "错误")
-	ERR_UN = NewErrorCode(-1, "未知错误")
-	OK     = NewErrorCode(0, "成功")
+	OK  = NewErrorCode(0, "成功")
+	ERR = NewErrorCode(-1, "错误")
 
-	ERR_AUTH = NewErrorCode(401, "认证失败")
-
+	ERR_AUTH     = NewErrorCode(2001, "认证失败")
 	ERR_TOKEN    = NewErrorCode(2101, "无效token")
-	ERR_NOAPP    = NewErrorCode(12404, "无效app")
 	ERR_PARAM    = NewErrorCode(1401, "参数错误")
-	ERR_NOTFOUND = NewErrorCode(404, "未找到")
 	ERR_SERVER   = NewErrorCode(98, "服务异常")
 	ERR_NOSERVER = NewErrorCode(99, "服务不存在")
-	ERR_DBERR    = NewErrorCode(21, "查询失败")
-
-	ERR_NODATA = NewErrorCode(23, "无数据")
-
-	ERR_RESERR = NewErrorCode(9, "返回异常")
+	ERR_DBERR    = NewErrorCode(2501, "查询失败")
+	ERR_NODATA   = NewErrorCode(2502, "无数据")
 
 	ERR_WS_CONTENT = NewErrorCode(0, "已连接")
 	ERR_WS_CLOSE   = NewErrorCode(-1, "已连接")
@@ -86,6 +81,7 @@ func (e *ErrorCode) Success(c *gin.Context, data any) {
 		Msg:  OK.Msg,
 		Data: data,
 	}
+	gin.Recovery()
 	log.Trace(c, fmt.Sprintf("result: %v", string(e.Message(res, data))), nil)
 	c.JSON(http.StatusOK, res)
 	c.Abort()
