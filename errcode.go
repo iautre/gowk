@@ -100,3 +100,12 @@ func (e *ErrorCode) Fail(c *gin.Context, code *ErrorCode, err error) {
 	c.JSON(http.StatusOK, res)
 	c.Abort()
 }
+
+var defaultErrorCode ErrorCode
+
+func Success(c *gin.Context, data any) {
+	defaultErrorCode.Success(c, data)
+}
+func Fail(c *gin.Context, code *ErrorCode, err error) {
+	defaultErrorCode.Fail(c, code, err)
+}
