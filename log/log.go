@@ -8,6 +8,7 @@ import (
 
 func Error(ctx context.Context, msg string, err error, arr ...any) {
 	arr = append(arr, getTraceId(ctx)...)
+	arr = append(arr, err.Error())
 	slog.Error(msg, arr...)
 }
 func Info(ctx context.Context, msg string, arr ...any) {
