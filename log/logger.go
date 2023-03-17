@@ -2,6 +2,7 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"golang.org/x/exp/slog"
@@ -14,13 +15,16 @@ func Logger() *slog.Logger {
 	return slog.New(options.NewJSONHandler(os.Stderr))
 }
 
-type TextHandler struct{}
+type TextHandler struct {
+	Level slog.Level
+}
 
-func (h *TextHandler) Enabled(context.Context, slog.Level) bool {
-	return true
+func (h *TextHandler) Enabled(ctx context.Context, l slog.Level) bool {
+	return l <= h.Level
 }
 
 func (h *TextHandler) Handle(ctx context.Context, r slog.Record) error {
+	fmt.Printf("")
 	return nil
 }
 
