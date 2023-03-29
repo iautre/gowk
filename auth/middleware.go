@@ -41,22 +41,22 @@ func (a *Auth) Middleware(ctx *gin.Context) {
 					if ve, ok := err.(*jwt.ValidationError); ok {
 						// ValidationErrorMalformed是一个uint常量，表示token不可用
 						if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-							gowk.Panic(gowk.ERR_AUTH, "token不可用")
+							gowk.Panic(gowk.ERR_AUTH) //, "token不可用")
 							// ValidationErrorExpired表示Token过期
 						} else if ve.Errors&jwt.ValidationErrorExpired != 0 {
-							gowk.Panic(gowk.ERR_AUTH, "token过期")
+							gowk.Panic(gowk.ERR_AUTH) //, "token过期")
 							// ValidationErrorNotValidYet表示无效token
 						} else if ve.Errors&jwt.ValidationErrorNotValidYet != 0 {
-							gowk.Panic(gowk.ERR_AUTH, "无效的token")
+							gowk.Panic(gowk.ERR_AUTH) //, "无效的token")
 						} else {
-							gowk.Panic(gowk.ERR_AUTH, "token不可用")
+							gowk.Panic(gowk.ERR_AUTH) //, "token不可用")
 						}
 					}
-					gowk.Panic(gowk.ERR_AUTH, "token失败")
+					gowk.Panic(gowk.ERR_AUTH) //, "token失败")
 				}
 				claims, ok := claim.Claims.(*jwt.StandardClaims)
 				if !ok || !claim.Valid {
-					gowk.Panic(gowk.ERR_AUTH, "校验失败了")
+					gowk.Panic(gowk.ERR_AUTH) //, "校验失败了")
 				}
 				//校验成功了
 				ctx.Set(U_ID, claims.Id)
@@ -72,14 +72,14 @@ func (a *Auth) Middleware(ctx *gin.Context) {
 		}
 		id, ok := a.HandlerFunc.CheckApiKey(key)
 		if !ok {
-			gowk.Panic(gowk.ERR_AUTH, "校验失败")
+			gowk.Panic(gowk.ERR_AUTH) //, "校验失败")
 		}
 		//校验成功
 		ctx.Set(A_ID, id)
 		ctx.Next()
 		return
 	}
-	gowk.Panic(gowk.ERR_AUTH, "校验失败")
+	gowk.Panic(gowk.ERR_AUTH) //, "校验失败")
 }
 
 func (a *Auth) checkAuthType(ats []AuthType, tokenType string) bool {
