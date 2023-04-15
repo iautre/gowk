@@ -10,10 +10,11 @@ import (
 )
 
 type ErrorCode struct {
-	Code int    `json:"code"`
-	Msg  string `json:"msg"`
-	Data any    `json:"data,omitempty"`
-	err  error  `json:"-"`
+	Status int    `json:"status"`
+	Code   int    `json:"code"`
+	Msg    string `json:"msg"`
+	Data   any    `json:"data,omitempty"`
+	err    error  `json:"-"`
 }
 
 func Panic(e *ErrorCode, err ...error) {
@@ -97,7 +98,11 @@ func (e *ErrorCode) Fail(c *gin.Context, code *ErrorCode, err error) {
 		Msg:  code.Msg,
 	}
 	log.Trace(c, fmt.Sprintf("result: %v", string(e.Message(res, nil))), nil)
-	c.JSON(http.StatusOK, res)
+	if e.Status != 0 {
+		c.JSON(e.Status, res)
+	} else {
+		c.JSON(http.StatusOK, res)
+	}
 	c.Abort()
 }
 
