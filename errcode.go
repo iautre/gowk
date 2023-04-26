@@ -30,6 +30,13 @@ func NewErrorCode(code int, msg string) *ErrorCode {
 		Msg:  msg,
 	}
 }
+func newAuthErrorCode(code int, msg string) *ErrorCode {
+	return &ErrorCode{
+		Status: http.StatusUnauthorized,
+		Code:   code,
+		Msg:    msg,
+	}
+}
 func NewError(msg string) *ErrorCode {
 	return &ErrorCode{
 		Code: 99,
@@ -51,8 +58,8 @@ var (
 	OK  = NewErrorCode(0, "成功")
 	ERR = NewErrorCode(-1, "错误")
 
-	ERR_AUTH     = NewErrorCode(2001, "认证失败")
-	ERR_TOKEN    = NewErrorCode(2101, "无效token")
+	ERR_AUTH     = newAuthErrorCode(2001, "认证失败")
+	ERR_TOKEN    = newAuthErrorCode(2101, "无效token")
 	ERR_PARAM    = NewErrorCode(1401, "参数错误")
 	ERR_SERVER   = NewErrorCode(98, "服务异常")
 	ERR_NOSERVER = NewErrorCode(99, "服务不存在")
@@ -82,24 +89,23 @@ func (e *ErrorCode) Success(c *gin.Context, data any) {
 		Msg:  OK.Msg,
 		Data: data,
 	}
-	gin.Recovery()
 	log.Trace(c, fmt.Sprintf("result: %v", string(e.Message(res, data))), nil)
 	c.JSON(http.StatusOK, res)
 	c.Abort()
 }
 
 // 失败消息
-func (e *ErrorCode) Fail(c *gin.Context, code *ErrorCode, err error) {
-	if err != nil {
-		log.Error(c, err.Error(), err)
+func (e *ErrorCode) Fail(c *gin.Context, code *ErrorCode, err ...error) {
+	if len(err) > 0 && err[0] != nil {
+		log.Error(c, err[0].Error(), err[0])
 	}
 	res := &ErrorCode{
 		Code: code.Code,
 		Msg:  code.Msg,
 	}
 	log.Trace(c, fmt.Sprintf("result: %v", string(e.Message(res, nil))), nil)
-	if e.Status != 0 {
-		c.JSON(e.Status, res)
+	if code.Status != 0 {
+		c.JSON(code.Status, res)
 	} else {
 		c.JSON(http.StatusOK, res)
 	}
