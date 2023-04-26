@@ -23,23 +23,7 @@ type Token struct {
 }
 
 func CheckLoginMiddleware() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		tokenValue := ctx.Request.Header.Get(_defaultTokenName)
-		if tokenValue == "" {
-			Response().Fail(ctx, ERR_TOKEN)
-			return
-		}
-		t, err := _defaultTokenHandler.GetToken(tokenValue)
-		if err != nil {
-			Response().Fail(ctx, ERR_TOKEN)
-			return
-		}
-		if t == nil {
-			Response().Fail(ctx, ERR_TOKEN)
-			return
-		}
-		ctx.Next()
-	}
+	return CheckLogin
 }
 
 func CheckLogin(ctx *gin.Context) {
@@ -68,7 +52,11 @@ func SetTokenName(name string) {
 	_defaultTokenName = name
 }
 
-func Login(ctx *gin.Context, loginId any) *Token {
+type longIdType interface {
+	string | int | uint | int64 | uint64
+}
+
+func Login[T longIdType](ctx *gin.Context, loginId T) *Token {
 	token := &Token{
 		Value:   UUID(),
 		Name:    _defaultTokenName,
@@ -77,8 +65,15 @@ func Login(ctx *gin.Context, loginId any) *Token {
 	_defaultTokenHandler.SaveToken(token.Value, token)
 	return token
 }
-func GetLoginId(ctx context.Context) any {
-	return ctx.Value(CONTEXT_LOGIN_ID_KEY)
+
+func GetLoginId[T longIdType](ctx context.Context) T {
+	var tmp T
+	switch ctx.Value(CONTEXT_LOGIN_ID_KEY).(type) {
+	case T:
+		return ctx.Value(CONTEXT_LOGIN_ID_KEY).(T)
+	default:
+		return tmp
+	}
 }
 
 type TokenHandler interface {
