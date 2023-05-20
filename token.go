@@ -29,17 +29,14 @@ func CheckLoginMiddleware() gin.HandlerFunc {
 func CheckLogin(ctx *gin.Context) {
 	tokenValue := ctx.Request.Header.Get(_defaultTokenName)
 	if tokenValue == "" {
-		Response().Fail(ctx, ERR_TOKEN)
-		return
+		Panic(ERR_TOKEN)
 	}
 	t, err := _defaultTokenHandler.GetToken(tokenValue)
 	if err != nil {
-		Response().Fail(ctx, ERR_TOKEN)
-		return
+		Panic(ERR_TOKEN)
 	}
 	if t == nil {
-		Response().Fail(ctx, ERR_TOKEN)
-		return
+		Panic(ERR_TOKEN)
 	}
 	ctx.Set(CONTEXT_LOGIN_ID_KEY, t.loginId)
 	ctx.Next()

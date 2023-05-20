@@ -70,5 +70,5 @@ func (i *item) isExpire() bool {
 	if i.expireIn == 0 {
 		return false
 	}
-	return time.Now().Sub(i.created) > i.expireIn
+	return time.Since(i.created) > i.expireIn
 }

@@ -9,10 +9,10 @@ import (
 )
 
 func Logger() *slog.Logger {
-	options := slog.HandlerOptions{
+	options := &slog.HandlerOptions{
 		AddSource: true,
 	}
-	return slog.New(options.NewJSONHandler(os.Stderr))
+	return slog.New(slog.NewJSONHandler(os.Stderr, options))
 }
 
 type TextHandler struct {

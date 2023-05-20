@@ -1,12 +1,7 @@
 package gowk
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
-	"github.com/iautre/gowk/log"
 )
 
 type ErrorCode struct {
@@ -69,54 +64,3 @@ var (
 	ERR_WS_CONTENT = NewErrorCode(0, "已连接")
 	ERR_WS_CLOSE   = NewErrorCode(-1, "已连接")
 )
-
-func (e *ErrorCode) i() {}
-
-func (e *ErrorCode) Message(code *ErrorCode, data any) []byte {
-	res := &ErrorCode{
-		Code: code.Code,
-		Msg:  code.Msg,
-		Data: data,
-	}
-	jsonByte, _ := json.Marshal(res)
-	return jsonByte
-}
-
-// 成功消息
-func (e *ErrorCode) Success(c *gin.Context, data any) {
-	res := &ErrorCode{
-		Code: OK.Code,
-		Msg:  OK.Msg,
-		Data: data,
-	}
-	log.Trace(c, fmt.Sprintf("result: %v", string(e.Message(res, data))), nil)
-	c.JSON(http.StatusOK, res)
-	c.Abort()
-}
-
-// 失败消息
-func (e *ErrorCode) Fail(c *gin.Context, code *ErrorCode, err ...error) {
-	if len(err) > 0 && err[0] != nil {
-		log.Error(c, err[0].Error(), err[0])
-	}
-	res := &ErrorCode{
-		Code: code.Code,
-		Msg:  code.Msg,
-	}
-	log.Trace(c, fmt.Sprintf("result: %v", string(e.Message(res, nil))), nil)
-	if code.Status != 0 {
-		c.JSON(code.Status, res)
-	} else {
-		c.JSON(http.StatusOK, res)
-	}
-	c.Abort()
-}
-
-var defaultErrorCode ErrorCode
-
-func Success(c *gin.Context, data any) {
-	defaultErrorCode.Success(c, data)
-}
-func Fail(c *gin.Context, code *ErrorCode, err error) {
-	defaultErrorCode.Fail(c, code, err)
-}

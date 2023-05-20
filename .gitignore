@@ -2,3 +2,5 @@ go.work
 go.work.sum
 .DS_Store
 .vscode
+log/.DS_Store
+.DS_Store

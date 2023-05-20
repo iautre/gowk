@@ -24,6 +24,6 @@ func (c *Controller[T]) Page() gin.HandlerFunc {
 		if err != nil {
 			Panic(ERR, err)
 		}
-		Response().Success(c, res)
+		Success(c, res)
 	}
 }
