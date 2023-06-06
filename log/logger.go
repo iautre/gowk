@@ -12,7 +12,7 @@ func Logger() *slog.Logger {
 	options := &slog.HandlerOptions{
 		AddSource: true,
 	}
-	return slog.New(slog.NewJSONHandler(os.Stderr, options))
+	return slog.New(slog.NewTextHandler(os.Stderr, options))
 }
 
 type TextHandler struct {

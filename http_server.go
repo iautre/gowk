@@ -17,6 +17,12 @@ type HttpServer struct {
 	Engine  *gin.Engine
 }
 
+func New() *gin.Engine {
+	engine := gin.New()
+	engine.Use(LogTrace(), Recover())
+	return engine
+}
+
 func Run(r *gin.Engine) {
 	httpServer := &HttpServer{
 		Engine: r,
