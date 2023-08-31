@@ -16,22 +16,25 @@ func Recover() gin.HandlerFunc {
 				switch tp := err.(type) {
 				case *ErrorCode: // 自定义异常
 					e := err.(*ErrorCode)
-					log.Error(c, e.Msg, e.err)
+					if e.Code == OK.Code {
+						return
+					}
+					// log.Error(c, e.Msg, e.err)
 					// 返回错误信息
-					Fail(c, e, e.err)
+					end(c, e, e.err)
 					// c.Abort()
 				case runtime.Error: // 运行时错误
 					e := err.(runtime.Error)
 					log.Error(c, e.Error(), e)
-					Fail(c, ERR, nil)
+					end(c, ERR, nil)
 					// c.Abort()
 				default: // 非运行时错误
 					log.Error(c, fmt.Sprintf("recover type: %s", tp), nil)
 					log.Error(c, fmt.Sprintf("%v", err), nil)
-					Fail(c, ERR, nil)
+					end(c, ERR, nil)
 				}
 			}
-			Success(c, nil)
+			end(c, OK)
 		}()
 		c.Next()
 	}

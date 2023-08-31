@@ -10,34 +10,30 @@ import (
 )
 
 func Success(c *gin.Context, data any) {
-	if c.IsAborted() {
-		return
-	}
 	res := &ErrorCode{
 		Code: OK.Code,
 		Msg:  OK.Msg,
 		Data: data,
 	}
-	log.Trace(c, fmt.Sprintf("result: %v", string(Message(res, data))), nil)
-	c.JSON(http.StatusOK, res)
-	c.Abort()
+	end(c, res)
+	Panic(res)
 }
 func Fail(c *gin.Context, code *ErrorCode, err ...error) {
+	end(c, code, err...)
+	Panic(code, err...)
+}
+func end(c *gin.Context, code *ErrorCode, err ...error) {
 	if c.IsAborted() {
 		return
 	}
 	if len(err) > 0 && err[0] != nil {
 		log.Error(c, err[0].Error(), err[0])
 	}
-	res := &ErrorCode{
-		Code: code.Code,
-		Msg:  code.Msg,
-	}
-	log.Trace(c, fmt.Sprintf("result: %v", string(Message(res, nil))), nil)
+	log.Trace(c, fmt.Sprintf("result: %v", string(Message(code, nil))), nil)
 	if code.Status != 0 {
-		c.JSON(code.Status, res)
+		c.JSON(code.Status, code)
 	} else {
-		c.JSON(http.StatusOK, res)
+		c.JSON(http.StatusOK, code)
 	}
 	c.Abort()
 }
