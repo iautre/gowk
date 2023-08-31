@@ -41,3 +41,9 @@ func Recover() gin.HandlerFunc {
 func LogTrace() gin.HandlerFunc {
 	return log.RequestMiddleware()
 }
+
+func NotFound() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		Fail(ctx, NOT_FOUND)
+	}
+}

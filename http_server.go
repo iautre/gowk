@@ -20,6 +20,7 @@ type HttpServer struct {
 func New() *gin.Engine {
 	engine := gin.New()
 	engine.Use(LogTrace(), Recover())
+	engine.NoRoute(NotFound())
 	return engine
 }
 

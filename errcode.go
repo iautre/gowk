@@ -53,6 +53,8 @@ var (
 	OK  = NewErrorCode(0, "成功")
 	ERR = NewErrorCode(-1, "错误")
 
+	NOT_FOUND = &ErrorCode{Status: 404, Code: 404, Msg: "未找到"}
+
 	ERR_AUTH     = newAuthErrorCode(2001, "认证失败")
 	ERR_TOKEN    = newAuthErrorCode(2101, "无效token")
 	ERR_PARAM    = NewErrorCode(1401, "参数错误")
