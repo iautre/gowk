@@ -31,6 +31,7 @@ func Recover() gin.HandlerFunc {
 					Fail(c, ERR, nil)
 				}
 			}
+			Success(c, nil)
 		}()
 		c.Next()
 	}

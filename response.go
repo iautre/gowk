@@ -10,6 +10,9 @@ import (
 )
 
 func Success(c *gin.Context, data any) {
+	if c.IsAborted() {
+		return
+	}
 	res := &ErrorCode{
 		Code: OK.Code,
 		Msg:  OK.Msg,
@@ -20,6 +23,9 @@ func Success(c *gin.Context, data any) {
 	c.Abort()
 }
 func Fail(c *gin.Context, code *ErrorCode, err ...error) {
+	if c.IsAborted() {
+		return
+	}
 	if len(err) > 0 && err[0] != nil {
 		log.Error(c, err[0].Error(), err[0])
 	}
