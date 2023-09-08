@@ -3,7 +3,7 @@ package log
 import (
 	"context"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func Error(ctx context.Context, msg string, err error, arr ...any) {

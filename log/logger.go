@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func Logger() *slog.Logger {

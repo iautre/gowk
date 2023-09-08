@@ -3,7 +3,7 @@ package gowk
 import (
 	"testing"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func TestLogger(t *testing.T) {

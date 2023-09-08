@@ -7,7 +7,7 @@ import (
 	"os"
 	"runtime"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func Logger(l slog.Level) *slog.Logger {
