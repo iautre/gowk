@@ -30,9 +30,12 @@ func Init(name string) {
 		fmt.Printf("no conf server, use default Addr: 80")
 		Server.Addr = ":80"
 	}
-	if cfg.HasSection("mysql") {
-		Mysql = &MysqlConf{}
-		cfg.Section("mysql").MapTo(Mysql)
+	if cfg.HasSection("db") {
+		DB = &DBConf{}
+		cfg.Section("db").MapTo(DB)
+	} else if cfg.HasSection("mysql") {
+		DB = &DBConf{}
+		cfg.Section("mysql").MapTo(DB)
 	}
 
 	if cfg.HasSection("mongo") {

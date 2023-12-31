@@ -13,12 +13,12 @@ func DBs[T dbType](names ...string) (t T) {
 	var tmp any = t
 	switch tmp.(type) {
 	case *gorm.DB:
-		tmp = Mysql()
+		tmp = GormDB()
 	case *mongo.Client:
 		tmp = Mongo()
 	}
 	return tmp.(T)
 }
 func DB(names ...string) *gorm.DB {
-	return Mysql(names...)
+	return GormDB(names...)
 }

@@ -11,11 +11,11 @@ import (
 func init() {
 	var wg sync.WaitGroup
 
-	if conf.Mysql != nil {
+	if conf.DB != nil {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			mysqls.Init("", conf.Mysql, false)
+			gormDBs.Init("", conf.DB, false)
 		}()
 	}
 	if conf.Mongo != nil {

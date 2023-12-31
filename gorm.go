@@ -7,44 +7,45 @@ import (
 
 	"github.com/iautre/gowk/conf"
 	gromMysql "gorm.io/driver/mysql"
+	gromPostgresql "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
 
-type mysqlDB struct {
+type gormDB struct {
 	dbs map[string]*gorm.DB
 }
 
-var mysqls *mysqlDB = &mysqlDB{}
+var gormDBs *gormDB
 
-func Mysql(names ...string) *gorm.DB {
-	if mysqls == nil {
+func GormDB(names ...string) *gorm.DB {
+	if gormDBs == nil {
 		logs.Panic("未配置数据库")
 	}
 	if len(names) == 0 {
-		if db, ok := mysqls.dbs["default"]; ok {
+		if db, ok := gormDBs.dbs["default"]; ok {
 			return db
 		}
-		for _, v := range mysqls.dbs {
+		for _, v := range gormDBs.dbs {
 			return v
 		}
 	}
-	if db, ok := mysqls.dbs[names[0]]; ok {
+	if db, ok := gormDBs.dbs[names[0]]; ok {
 		return db
 	}
 	logs.Panic("未找到配置数据库")
 	return nil
 }
 
-func (m *mysqlDB) Init(name string, dbConf *conf.MysqlConf, reset bool) {
-	if mysqls == nil {
-		mysqls = &mysqlDB{}
+func (m *gormDB) Init(name string, dbConf *conf.DBConf, reset bool) {
+	if gormDBs == nil {
+		gormDBs = &gormDB{}
 	}
 	if name == "" {
 		name = "default"
 	}
 	if dbConf == nil {
-		dbConf = conf.Mysql
+		dbConf = conf.DB
 	}
 	if m.dbs == nil {
 		m.dbs = make(map[string]*gorm.DB)
@@ -54,14 +55,31 @@ func (m *mysqlDB) Init(name string, dbConf *conf.MysqlConf, reset bool) {
 	}
 }
 
-func (m *mysqlDB) initDB(dbConf *conf.MysqlConf) *gorm.DB {
-	dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
-		dbConf.User,
-		dbConf.Password,
-		dbConf.Host,
-		dbConf.Port,
-		dbConf.Name)
-	gdb, err := gorm.Open(gromMysql.Open(dsn), &gorm.Config{
+func (m *gormDB) initDB(dbConf *conf.DBConf) *gorm.DB {
+	var dialector gorm.Dialector
+	if dbConf.Type == "mysql" {
+		dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
+			dbConf.User,
+			dbConf.Password,
+			dbConf.Host,
+			dbConf.Port,
+			dbConf.Name)
+		dialector = gromMysql.Open(dsn)
+	}
+	if dbConf.Type == "postgresql" || dbConf.Type == "postgres" {
+		dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Shanghai",
+			dbConf.Host,
+			dbConf.User,
+			dbConf.Password,
+			dbConf.Name,
+			dbConf.Port,
+		)
+		dialector = gromPostgresql.Open(dsn)
+	}
+	if dialector == nil {
+		logs.Panic("未找到配置数据库")
+	}
+	gdb, err := gorm.Open(dialector, &gorm.Config{
 		// Logger: &log.GromLogger{},
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   dbConf.TablePrefix,

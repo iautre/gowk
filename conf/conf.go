@@ -17,7 +17,8 @@ type MongoConf struct {
 	Port        int    `ini:"port"`
 	MaxPoolSize uint64 `ini:"max_pool_size"`
 }
-type MysqlConf struct {
+type DBConf struct {
+	Type        string `ini:"type"`
 	User        string `ini:"user"`
 	Password    string `ini:"password"`
 	Host        string `ini:"host"`
@@ -33,7 +34,7 @@ type ServerConf struct {
 var (
 	confs  conf
 	cfg    *ini.File
-	Mysql  *MysqlConf
+	DB     *DBConf
 	Mongo  *MongoConf
 	Server *ServerConf
 )
