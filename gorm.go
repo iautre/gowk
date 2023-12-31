@@ -3,6 +3,7 @@ package gowk
 import (
 	"fmt"
 	logs "log"
+	"sync/atomic"
 	"time"
 
 	"github.com/iautre/gowk/conf"
@@ -16,9 +17,10 @@ type gormDB struct {
 	dbs map[string]*gorm.DB
 }
 
-var gormDBs *gormDB
+var defaultDBs atomic.Value
 
 func GormDB(names ...string) *gorm.DB {
+	gormDBs := defaultDBs.Load().(*gormDB)
 	if gormDBs == nil {
 		logs.Panic("未配置数据库")
 	}
@@ -37,25 +39,24 @@ func GormDB(names ...string) *gorm.DB {
 	return nil
 }
 
-func (m *gormDB) Init(name string, dbConf *conf.DBConf, reset bool) {
-	if gormDBs == nil {
-		gormDBs = &gormDB{}
-	}
+func initGormDBs(name string, dbConf *conf.DBConf, reset bool) {
 	if name == "" {
 		name = "default"
 	}
 	if dbConf == nil {
 		dbConf = conf.DB
 	}
-	if m.dbs == nil {
-		m.dbs = make(map[string]*gorm.DB)
+	gormDBs := &gormDB{}
+	if gormDBs.dbs == nil {
+		gormDBs.dbs = make(map[string]*gorm.DB)
 	}
-	if _, ok := m.dbs[name]; !ok || reset {
-		m.dbs[name] = m.initDB(dbConf)
+	if _, ok := gormDBs.dbs[name]; !ok || reset {
+		gormDBs.dbs[name] = initGormDB(dbConf)
 	}
+	defaultDBs.Store(gormDBs)
 }
 
-func (m *gormDB) initDB(dbConf *conf.DBConf) *gorm.DB {
+func initGormDB(dbConf *conf.DBConf) *gorm.DB {
 	var dialector gorm.Dialector
 	if dbConf.Type == "mysql" {
 		dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",

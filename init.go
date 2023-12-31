@@ -15,7 +15,7 @@ func init() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			gormDBs.Init("", conf.DB, false)
+			initGormDBs("", conf.DB, false)
 		}()
 	}
 	if conf.Mongo != nil {
