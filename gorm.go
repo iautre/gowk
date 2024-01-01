@@ -2,7 +2,7 @@ package gowk
 
 import (
 	"fmt"
-	logs "log"
+	"log"
 	"sync/atomic"
 	"time"
 
@@ -22,7 +22,7 @@ var defaultDBs atomic.Value
 func GormDB(names ...string) *gorm.DB {
 	gormDBs := defaultDBs.Load().(*gormDB)
 	if gormDBs == nil {
-		logs.Panic("未配置数据库")
+		log.Panic("未配置数据库")
 	}
 	if len(names) == 0 {
 		if db, ok := gormDBs.dbs["default"]; ok {
@@ -35,7 +35,7 @@ func GormDB(names ...string) *gorm.DB {
 	if db, ok := gormDBs.dbs[names[0]]; ok {
 		return db
 	}
-	logs.Panic("未找到配置数据库")
+	log.Panic("未找到配置数据库")
 	return nil
 }
 
@@ -78,22 +78,21 @@ func initGormDB(dbConf *conf.DBConf) *gorm.DB {
 		dialector = gromPostgresql.Open(dsn)
 	}
 	if dialector == nil {
-		logs.Panic("未找到配置数据库")
+		log.Panic("未找到配置数据库")
 	}
 	gdb, err := gorm.Open(dialector, &gorm.Config{
-		// Logger: &log.GromLogger{},
+		Logger: &GromLogger{},
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   dbConf.TablePrefix,
 			SingularTable: true,
 		},
 	})
-	//db.SetLogger(util.Log())
 	if err != nil {
-		logs.Panic(err)
+		log.Panic(err)
 	}
 	sqlDB, err := gdb.DB()
 	if err != nil {
-		logs.Panic(err)
+		log.Panic(err)
 	}
 	// SetMaxIdleConns 设置空闲连接池中连接的最大数量
 	sqlDB.SetMaxIdleConns(10)

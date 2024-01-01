@@ -6,8 +6,11 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"time"
 
 	"log/slog"
+
+	gormLogger "gorm.io/gorm/logger"
 )
 
 func Logger(l slog.Level) *slog.Logger {
@@ -36,7 +39,8 @@ func (h *TextHandler) Enabled(ctx context.Context, l slog.Level) bool {
 func (h *TextHandler) Handle(ctx context.Context, r slog.Record) error {
 
 	source := source(r.PC)
-	fmt.Printf(source.File, source.Function, source.Line)
+	fmt.Printf(source.File, source.Function, source.Line, r.Message)
+	fmt.Println("")
 	return nil
 }
 
@@ -56,4 +60,24 @@ func source(pc uintptr) *slog.Source {
 		File:     f.File,
 		Line:     f.Line,
 	}
+}
+
+type GromLogger struct {
+}
+
+func (g *GromLogger) LogMode(gormLogger.LogLevel) gormLogger.Interface {
+	return g
+}
+func (g *GromLogger) Info(ctx context.Context, msg string, args ...interface{}) {
+	slog.InfoContext(ctx, msg)
+}
+func (g *GromLogger) Warn(ctx context.Context, msg string, args ...interface{}) {
+	slog.WarnContext(ctx, msg)
+}
+func (g *GromLogger) Error(ctx context.Context, msg string, args ...interface{}) {
+	slog.ErrorContext(ctx, msg)
+}
+func (g *GromLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+	sql, rowsAffected := fc()
+	slog.InfoContext(ctx, fmt.Sprintf("%s sql: %s row:%d", begin, sql, rowsAffected))
 }

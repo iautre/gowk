@@ -48,7 +48,7 @@ func Paginate[T any](page *PageModel[T]) func(db *gorm.DB) *gorm.DB {
 		if page.Page > page.Pages {
 			p = page.Pages
 		}
-		size := page.Page
+		size := page.Size
 		offset := int((p - 1) * size)
 		return db.Offset(offset).Limit(int(size))
 	}

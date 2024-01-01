@@ -31,7 +31,7 @@ func Recover() gin.HandlerFunc {
 				default: // 非运行时错误
 					log.Error(c, fmt.Sprintf("recover type: %s", tp), nil)
 					log.Error(c, fmt.Sprintf("%v", err), nil)
-					end(c, ERR, nil)
+					end(c, NewError(fmt.Sprintf("%v", err)), nil)
 				}
 			}
 			end(c, OK)
