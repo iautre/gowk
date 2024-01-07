@@ -20,7 +20,7 @@ func (c *Controller[T]) Page() gin.HandlerFunc {
 			Panic(ERR_PARAM, err)
 		}
 		service := NewService[T](c)
-		res, err := service.GetList(&page, &t)
+		res, err := service.Page(&page, &t)
 		if err != nil {
 			Panic(ERR, err)
 		}

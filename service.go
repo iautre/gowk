@@ -11,7 +11,7 @@ func NewService[T any](ctx *gin.Context) *Service[T] {
 		Ctx: ctx,
 	}
 }
-func (s *Service[T]) GetList(pageModel *PageModel[T], queryParam *T) (*PageModel[T], error) {
+func (s *Service[T]) Page(pageModel *PageModel[T], queryParam *T) (*PageModel[T], error) {
 	var t T
 	var resStructList []*T
 	if err := DB().WithContext(s.Ctx).Model(&t).Where(queryParam).Count(&pageModel.Total).Error; err != nil {
@@ -20,11 +20,11 @@ func (s *Service[T]) GetList(pageModel *PageModel[T], queryParam *T) (*PageModel
 	if err := DB().WithContext(s.Ctx).Model(&t).Where(queryParam).Scopes(Paginate(pageModel)).Find(&resStructList).Error; err != nil {
 		return nil, err
 	}
-	pageModel.List = resStructList
+	pageModel.Records = resStructList
 	return pageModel, nil
 }
 
-func (s *Service[T]) GetOne(queryParam *T) (T, error) {
+func (s *Service[T]) One(queryParam *T) (T, error) {
 	var model T
 	err := DB().WithContext(s.Ctx).Where(queryParam).First(&model).Error
 	return model, err

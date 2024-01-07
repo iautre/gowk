@@ -22,11 +22,11 @@ func (m *Model) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 type PageModel[T any] struct {
-	Size  int64 `json:"size" form:"size"`
-	Page  int64 `json:"page" form:"page"`
-	Pages int64 `json:"pages"`
-	Total int64 `json:"total"`
-	List  []*T  `json:"list"`
+	Size    int64 `json:"size" form:"size"`
+	Current int64 `json:"current" form:"current"`
+	Pages   int64 `json:"pages"`
+	Total   int64 `json:"total"`
+	Records []*T  `json:"records"`
 }
 
 type M = map[string]interface{}
@@ -34,8 +34,8 @@ type A = []interface{}
 
 func Paginate[T any](page *PageModel[T]) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		if page.Page <= 0 {
-			page.Page = 0
+		if page.Current <= 0 {
+			page.Current = 0
 		}
 		if page.Size <= 0 {
 			page.Size = 10
@@ -44,8 +44,8 @@ func Paginate[T any](page *PageModel[T]) func(db *gorm.DB) *gorm.DB {
 		if page.Total%page.Size != 0 {
 			page.Pages++
 		}
-		p := page.Page
-		if page.Page > page.Pages {
+		p := page.Current
+		if page.Current > page.Pages {
 			p = page.Pages
 		}
 		size := page.Size
