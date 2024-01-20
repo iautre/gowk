@@ -5,5 +5,5 @@ import (
 )
 
 func TestConf(t *testing.T) {
-	// Init("conf.ini")
+	Init("conf.toml")
 }

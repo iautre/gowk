@@ -3,7 +3,6 @@ package gowk
 import (
 	"fmt"
 	"log"
-	"sync/atomic"
 	"time"
 
 	"github.com/iautre/gowk/conf"
@@ -17,10 +16,9 @@ type gormDB struct {
 	dbs map[string]*gorm.DB
 }
 
-var defaultDBs atomic.Value
+var gormDBs *gormDB
 
 func GormDB(names ...string) *gorm.DB {
-	gormDBs := defaultDBs.Load().(*gormDB)
 	if gormDBs == nil {
 		log.Panic("未配置数据库")
 	}
@@ -40,17 +38,15 @@ func GormDB(names ...string) *gorm.DB {
 }
 
 func initGormDBs(dbConf *conf.DatabaseConf, reset bool) {
-	if dbConf.Key == "" {
-		dbConf.Key = "default"
+	if gormDBs == nil {
+		gormDBs = &gormDB{}
 	}
-	gormDBs := &gormDB{}
 	if gormDBs.dbs == nil {
 		gormDBs.dbs = make(map[string]*gorm.DB)
 	}
 	if _, ok := gormDBs.dbs[dbConf.Key]; !ok || reset {
 		gormDBs.dbs[dbConf.Key] = initGormDB(dbConf)
 	}
-	defaultDBs.Store(gormDBs)
 }
 
 func initGormDB(dbConf *conf.DatabaseConf) *gorm.DB {

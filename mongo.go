@@ -19,8 +19,8 @@ var (
 )
 
 func Mongo(names ...string) *mongo.Client {
-	if mongos == nil {
-		panic("未配置数据库")
+	if mongos == nil || mongos.dbs == nil || len(mongos.dbs) == 0 {
+		panic("未配置mongo数据库")
 	}
 	if len(names) == 0 {
 		if db, ok := mongos.dbs["default"]; ok {
