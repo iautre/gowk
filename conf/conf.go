@@ -1,7 +1,7 @@
 package conf
 
 import (
-	"fmt"
+	"encoding/json"
 )
 
 type DatabaseConf struct {
@@ -38,9 +38,44 @@ func DBs() []*DatabaseConf {
 func HasDB() bool {
 	return len(dbs) > 0
 }
-func Get(key string) any {
-	return confMap[key]
+func Get[T any](key string) *T {
+	if _, ok := confMap[key]; !ok {
+		return nil
+	}
+	if m, ok := confMap[key].(map[string]any); ok {
+		buf, _ := json.Marshal(m)
+		var data T
+		json.Unmarshal(buf, &data)
+		return &data
+	} else if ms, ok := confMap[key].([]map[string]any); ok {
+		if len(ms) > 0 {
+			buf, _ := json.Marshal(ms[0])
+			var data T
+			json.Unmarshal(buf, &data)
+			return &data
+		}
+	}
+	return nil
 }
-func GetString(key string) string {
-	return fmt.Sprintf("%v", Get(key))
+func Gets[T any](key string) []*T {
+	if _, ok := confMap[key]; !ok {
+		return nil
+	}
+	if m, ok := confMap[key].(map[string]any); ok {
+		buf, _ := json.Marshal(m)
+		var data T
+		json.Unmarshal(buf, &data)
+		res := make([]*T, 0, 1)
+		return append(res, &data)
+	} else if ms, ok := confMap[key].([]map[string]any); ok {
+		res := make([]*T, 0, len(ms))
+		for _, m := range ms {
+			buf, _ := json.Marshal(m)
+			var data T
+			json.Unmarshal(buf, &data)
+			res = append(res, &data)
+		}
+		return res
+	}
+	return nil
 }

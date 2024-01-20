@@ -46,8 +46,9 @@ func Init(path string) {
 				}
 			}
 
+		} else {
+			confMap[k] = v
 		}
-
 	}
 	dbs = make([]*DatabaseConf, 0, len(dbMap))
 	for _, v := range dbMap {
