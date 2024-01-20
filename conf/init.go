@@ -12,7 +12,7 @@ import (
 var confpath string
 
 func init() {
-	flag.StringVar(&confpath, "c", "conf.ini", "use default conf path")
+	flag.StringVar(&confpath, "c", "conf.toml", "use default conf path")
 	if flag.Lookup("test.v") != nil {
 		testing.Init()
 	}
