@@ -2,49 +2,47 @@ package conf
 
 import (
 	"fmt"
-
-	"gopkg.in/ini.v1"
 )
 
-type conf map[string]any
-
-type MongoConf struct {
-	User        string `ini:"user"`
-	Password    string `ini:"password"`
-	Host        string `ini:"host"`
-	Name        string `ini:"name"`
-	TablePrefix string `ini:"table_prefix"`
-	Port        int    `ini:"port"`
-	MaxPoolSize uint64 `ini:"max_pool_size"`
+type conf struct {
+	db     []*DatabaseConf `toml:"database"`
+	server *ServerConf     `toml:"server"`
+	other  map[string]any  `toml:"other"`
 }
-type DBConf struct {
-	Type        string `ini:"type"`
-	User        string `ini:"user"`
-	Password    string `ini:"password"`
-	Host        string `ini:"host"`
-	Name        string `ini:"name"`
-	TablePrefix string `ini:"table_prefix"`
-	Port        int    `ini:"port"`
-	MaxPoolSize uint64 `ini:"max_pool_size"`
+type DatabaseConf struct {
+	Key         string `toml:"key"`
+	Type        string `toml:"type"`
+	User        string `toml:"user"`
+	Password    string `toml:"password"`
+	Host        string `toml:"host"`
+	Name        string `toml:"name"`
+	TablePrefix string `toml:"table_prefix"`
+	Port        int    `toml:"port"`
+	MaxPoolSize uint64 `toml:"max_pool_size"`
 }
 type ServerConf struct {
-	Addr string `ini:"addr"`
+	Addr string `toml:"addr"`
 }
 
 var (
-	confs  conf
-	cfg    *ini.File
-	DB     *DBConf
-	Mongo  *MongoConf
-	Server *ServerConf
+	confs conf
+	dbMap map[string]*DatabaseConf
 )
 
-func Section(name string) *ini.Section {
-	return cfg.Section(name)
+func Server() *ServerConf {
+	return confs.server
 }
-
+func DB(key string) *DatabaseConf {
+	return dbMap[key]
+}
+func DBs() []*DatabaseConf {
+	return confs.db
+}
+func HasDB() bool {
+	return confs.db != nil && len(confs.db) > 0
+}
 func Get(key string) any {
-	return confs[key]
+	return confs.other[key]
 }
 func GetString(key string) string {
 	return fmt.Sprintf("%v", Get(key))

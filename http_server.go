@@ -37,7 +37,7 @@ func (h *HttpServer) Run() {
 	}
 	if h.Handler == nil {
 		h.Handler = &http.Server{
-			Addr:           conf.Server.Addr,
+			Addr:           conf.Server().Addr,
 			Handler:        h.Engine,
 			ReadTimeout:    time.Duration(75) * time.Second,
 			WriteTimeout:   time.Duration(75) * time.Second,
@@ -54,9 +54,9 @@ func (h *HttpServer) Run() {
 
 func (h *HttpServer) ServerRun() {
 	go func() {
-		log.Printf(" [INFO] HttpServerRun:%s\n", conf.Server.Addr)
+		log.Printf(" [INFO] HttpServerRun:%s\n", conf.Server().Addr)
 		if err := h.Handler.ListenAndServe(); err != nil {
-			log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", conf.Server.Addr, err)
+			log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", conf.Server().Addr, err)
 		}
 	}()
 }

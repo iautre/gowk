@@ -38,8 +38,8 @@ func (t *Time) UnmarshalJSON(data []byte) (err error) {
 	return
 }
 
-func Now() Time {
-	return Time{time.Now()}
+func Now() *Time {
+	return &Time{time.Now()}
 }
 
 // Value insert timestamp into mysql need this function.

@@ -39,24 +39,21 @@ func GormDB(names ...string) *gorm.DB {
 	return nil
 }
 
-func initGormDBs(name string, dbConf *conf.DBConf, reset bool) {
-	if name == "" {
-		name = "default"
-	}
-	if dbConf == nil {
-		dbConf = conf.DB
+func initGormDBs(dbConf *conf.DatabaseConf, reset bool) {
+	if dbConf.Key == "" {
+		dbConf.Key = "default"
 	}
 	gormDBs := &gormDB{}
 	if gormDBs.dbs == nil {
 		gormDBs.dbs = make(map[string]*gorm.DB)
 	}
-	if _, ok := gormDBs.dbs[name]; !ok || reset {
-		gormDBs.dbs[name] = initGormDB(dbConf)
+	if _, ok := gormDBs.dbs[dbConf.Key]; !ok || reset {
+		gormDBs.dbs[dbConf.Key] = initGormDB(dbConf)
 	}
 	defaultDBs.Store(gormDBs)
 }
 
-func initGormDB(dbConf *conf.DBConf) *gorm.DB {
+func initGormDB(dbConf *conf.DatabaseConf) *gorm.DB {
 	var dialector gorm.Dialector
 	if dbConf.Type == "mysql" {
 		dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",

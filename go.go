@@ -11,8 +11,6 @@ var goroutines = &goroutine{
 	maxNum: 1000,
 }
 
-var wg sync.WaitGroup
-
 func Go(f func()) {
 	if goroutines.maxNum > 0 {
 		go goroutines.Exec(f)

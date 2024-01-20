@@ -3,8 +3,6 @@ package gowk
 import (
 	"context"
 	"testing"
-
-	"github.com/iautre/gowk/conf"
 )
 
 func TestMongo(t *testing.T) {
@@ -13,8 +11,4 @@ func TestMongo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestConf(t *testing.T) {
-	t.Log(conf.Mongo)
 }

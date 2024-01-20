@@ -36,22 +36,19 @@ func Mongo(names ...string) *mongo.Client {
 	panic("未找到配置数据库")
 }
 
-func (m *mongoDB) Init(name string, dbConf *conf.MongoConf, reset bool) {
-	if name == "" {
-		name = "default"
-	}
-	if dbConf == nil {
-		dbConf = conf.Mongo
+func (m *mongoDB) Init(dbConf *conf.DatabaseConf, reset bool) {
+	if dbConf.Key == "" {
+		dbConf.Key = "default"
 	}
 	if m.dbs == nil {
 		m.dbs = make(map[string]*mongo.Client)
 	}
-	if _, ok := m.dbs[name]; !ok || reset {
-		m.dbs[name] = m.initDB(dbConf)
+	if _, ok := m.dbs[dbConf.Key]; !ok || reset {
+		m.dbs[dbConf.Key] = m.initDB(dbConf)
 	}
 }
 
-func (m *mongoDB) initDB(dbConf *conf.MongoConf) *mongo.Client {
+func (m *mongoDB) initDB(dbConf *conf.DatabaseConf) *mongo.Client {
 	uri := fmt.Sprintf("mongodb://%s:%s@%s:%d",
 		dbConf.User,
 		dbConf.Password,
