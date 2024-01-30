@@ -21,6 +21,10 @@ func (m *Model) BeforeUpdate(tx *gorm.DB) (err error) {
 	return
 }
 
+type PageParams struct {
+	Size    int64 `json:"size" form:"size"`
+	Current int64 `json:"current" form:"current"`
+}
 type PageModel[T any] struct {
 	Size    int64 `json:"size" form:"size"`
 	Current int64 `json:"current" form:"current"`
