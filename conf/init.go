@@ -83,7 +83,7 @@ func toDatabaseConf(database map[string]any) (string, *DatabaseConf) {
 
 func toRedisConf(redis map[string]any) *ReidsConf {
 	buf, _ := json.Marshal(redis)
-	var data DatabaseConf
+	var data ReidsConf
 	json.Unmarshal(buf, &data)
 	return &data
 }
