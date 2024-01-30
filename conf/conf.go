@@ -18,13 +18,27 @@ type DatabaseConf struct {
 type ServerConf struct {
 	Addr string `toml:"addr"`
 }
+type ReidsConf struct {
+	Host     string `json:"host" toml:"host"`
+	Port     int    `json:"port" toml:"port"`
+	Password string `json:"password" toml:"password"`
+	DB       int    `json:"db" toml:"db"`
+}
 
 var (
-	confMap map[string]any           = map[string]any{}
-	dbMap   map[string]*DatabaseConf = map[string]*DatabaseConf{}
-	dbs     []*DatabaseConf
-	server  *ServerConf
+	confMap   map[string]any           = map[string]any{}
+	dbMap     map[string]*DatabaseConf = map[string]*DatabaseConf{}
+	dbs       []*DatabaseConf
+	server    *ServerConf
+	redisConf *ReidsConf
 )
+
+func Redis() *ReidsConf {
+	return redisConf
+}
+func HasRedis() bool {
+	return redisConf != nil
+}
 
 func Server() *ServerConf {
 	return server

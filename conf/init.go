@@ -40,12 +40,15 @@ func Init(path string) {
 				dbs = append(dbs, dbMap[key])
 			}
 		} else if strings.ToLower(k) == "server" {
-			if serverTemp, ok := v.(map[string]any); ok {
+			if temp, ok := v.(map[string]any); ok {
 				server = &ServerConf{
-					Addr: fmt.Sprintf("%v", serverTemp["addr"]),
+					Addr: fmt.Sprintf("%v", temp["addr"]),
 				}
 			}
-
+		} else if strings.ToLower(k) == "redis" {
+			if temp, ok := v.(map[string]any); ok {
+				redisConf = toRedisConf(temp)
+			}
 		} else {
 			confMap[k] = v
 		}
@@ -76,4 +79,11 @@ func toDatabaseConf(database map[string]any) (string, *DatabaseConf) {
 	// 	MaxPoolSize: uint64(database["maxPoolSize"].(int64)),
 	// }
 	return key, &data
+}
+
+func toRedisConf(redis map[string]any) *ReidsConf {
+	buf, _ := json.Marshal(redis)
+	var data DatabaseConf
+	json.Unmarshal(buf, &data)
+	return &data
 }
