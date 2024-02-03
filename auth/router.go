@@ -1,6 +1,8 @@
 package auth
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 func (a *Auth) Router(r *gin.RouterGroup, relativePath ...string) {
 	var ro *gin.RouterGroup
@@ -9,9 +11,11 @@ func (a *Auth) Router(r *gin.RouterGroup, relativePath ...string) {
 	} else {
 		ro = r
 	}
-	ro.GET("/auth/token", a.Token)
-	ro.GET("/auth/qrcode", a.Qrcode)
-	ro.GET("/auth/smscode", a.Smscode)
+	var u UserController
+	// ro.GET("/auth/token", a.Token)
+	// ro.GET("/auth/qrcode", a.Qrcode)
+	ro.GET("/auth/smscode", u.Smscode)
+
 }
 func Router(r *gin.RouterGroup, relativePath ...string) {
 	defaultAuth.Router(r, relativePath...)
