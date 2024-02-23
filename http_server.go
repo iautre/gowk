@@ -3,6 +3,7 @@ package gowk
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,6 +19,7 @@ type HttpServer struct {
 }
 
 func New() *gin.Engine {
+	slog.SetDefault(Logger(slog.LevelInfo))
 	engine := gin.New()
 	engine.Use(LogTrace(), Recover())
 	engine.NoRoute(NotFound())
