@@ -1,6 +1,7 @@
 package gowk
 
 import (
+	"context"
 	"testing"
 
 	"log/slog"
@@ -9,5 +10,5 @@ import (
 func TestLogger(t *testing.T) {
 	testing.Init()
 	slog.SetDefault(Logger(slog.LevelInfo))
-	slog.Info("22222")
+	slog.InfoContext(context.WithValue(context.TODO(), "traceId", "safsf"), "22222")
 }

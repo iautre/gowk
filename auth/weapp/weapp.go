@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+
+	"log/slog"
 	"net/http"
 	"time"
-
-	"github.com/iautre/gowk/log"
 )
 
 type Weapp struct{}
@@ -25,8 +25,8 @@ type Token struct {
 	ExpiresTime int64
 }
 
-const appId = "wxd713c74ef777d96d"
-const secret = "256932c1e4215a71b3d883a3c3fb42cd"
+const appId = ""
+const secret = ""
 const getAccessTokenUrl = "https://api.weixin.qq.com/cgi-bin/token"
 
 var token *Token = &Token{}
@@ -36,7 +36,7 @@ func GetAccessToken() string {
 	if token.ExpiresTime <= time.Now().Unix() {
 		t, err := weapp.GetAccessToken()
 		if err != nil {
-			log.Error(context.TODO(), err.Error(), err)
+			slog.ErrorContext(context.TODO(), err.Error())
 		}
 		token = t
 	}

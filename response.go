@@ -3,10 +3,10 @@ package gowk
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iautre/gowk/log"
 )
 
 func Success(c *gin.Context, data any) {
@@ -27,9 +27,9 @@ func end(c *gin.Context, code *ErrorCode, err ...error) {
 		return
 	}
 	if len(err) > 0 && err[0] != nil {
-		log.Error(c, err[0].Error(), err[0])
+		slog.ErrorContext(c, err[0].Error())
 	}
-	log.Trace(c, fmt.Sprintf("result: %v", string(Message(code, nil))), nil)
+	slog.InfoContext(c, fmt.Sprintf("result: %v", string(Message(code, nil))))
 	if code.Status != 0 {
 		c.JSON(code.Status, code)
 	} else {
