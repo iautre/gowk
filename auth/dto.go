@@ -16,3 +16,10 @@ type LoginRes struct {
 	UserId   int64  `json:"userId"`
 	Nickname string `json:"nickname"`
 }
+type UserRes struct {
+	Id       int64  `json:"id"`
+	Phone    string `json:"phone"`
+	Email    string `json:"email"`
+	Nickname string `json:"nickname"`
+	Group    string `json:"group"`
+}

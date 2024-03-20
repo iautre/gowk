@@ -13,6 +13,9 @@ var defaultUserController UserController
 func Login() gin.HandlerFunc {
 	return defaultUserController.Login
 }
+func UserInfo() gin.HandlerFunc {
+	return defaultUserController.UserInfo
+}
 
 func (u *UserController) Login(ctx *gin.Context) {
 	var params LoginParams
@@ -30,7 +33,12 @@ func (u *UserController) Login(ctx *gin.Context) {
 		Nickname: user.Nickname,
 	})
 }
-
+func (u *UserController) UserInfo(ctx *gin.Context) {
+	userId := gowk.LoginId[int64](ctx)
+	var userService UserService
+	user := userService.GetById(ctx, userId)
+	gowk.Success(ctx, gowk.CopyByJson[User, UserRes](user))
+}
 func (u *UserController) Smscode(ctx *gin.Context) {
 	params := &LoginParams{}
 	err := ctx.ShouldBind(params)
