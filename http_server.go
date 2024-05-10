@@ -22,7 +22,10 @@ func New() *gin.Engine {
 	slog.SetDefault(Logger(slog.LevelInfo))
 	engine := gin.New()
 	engine.Use(LogTrace(), Recover())
-	engine.NoRoute(NotFound())
+	engine.NoRoute(func(ctx *gin.Context) {
+		ctx.Status(http.StatusNotFound)
+		ctx.Abort()
+	})
 	return engine
 }
 
