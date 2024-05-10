@@ -5,3 +5,4 @@ go.work.sum
 log/.DS_Store
 .DS_Store
 conf.toml
+.idea
