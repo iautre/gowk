@@ -2,7 +2,12 @@ package gowk
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/iautre/gowk/conf"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -112,4 +117,53 @@ func (d *defaultToken) LoadToken(key string) (*Token, error) {
 		return nil, errors.New("no token")
 	}
 	return v, nil
+}
+
+/**
+*微信相关
+ */
+
+type Weapp struct {
+	appid  string
+	secret string
+}
+
+type WeappErr struct {
+	Errcode int64  `json:"errcode"`
+	Errmsg  string `json:"errmsg"`
+}
+
+type WeappToken struct {
+	WeappErr
+	AccessToken string `json:"access_token"`
+	ExpiresIn   int64  `json:"expires_in"`
+	ExpiresTime int64
+}
+
+const getAccessTokenUrl = "https://api.weixin.qq.com/cgi-bin/token"
+
+func NewWeapp() *Weapp {
+	temp := conf.Get[map[string]any]("weapp")
+	return &Weapp{
+		appid:  (*temp)["appid"].(string),
+		secret: (*temp)["secret"].(string),
+	}
+}
+
+func (w *Weapp) GetAccessToken() (*WeappToken, error) {
+	res, err := http.Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", getAccessTokenUrl, w.appid, w.secret))
+	if err != nil {
+		return nil, err
+	}
+	var t WeappToken
+	err = json.NewDecoder(res.Body).Decode(&t)
+	res.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	if t.Errcode != 0 {
+		return nil, err
+	}
+	t.ExpiresTime = t.ExpiresIn + time.Now().Unix()
+	return &t, nil
 }
