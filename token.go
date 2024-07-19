@@ -150,12 +150,39 @@ func NewWeapp() *Weapp {
 	}
 }
 
-func (w *Weapp) GetAccessToken() (*WeappToken, error) {
+func (w *Weapp) GetAccessToken(ctx context.Context) (*WeappToken, error) {
 	res, err := http.Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", getAccessTokenUrl, w.appid, w.secret))
 	if err != nil {
 		return nil, err
 	}
 	var t WeappToken
+	err = json.NewDecoder(res.Body).Decode(&t)
+	res.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	if t.Errcode != 0 {
+		return nil, err
+	}
+	t.ExpiresTime = t.ExpiresIn + time.Now().Unix()
+	return &t, nil
+}
+
+type WeappJsapiTicket struct {
+	WeappErr
+	Ticket      string `json:"ticket"`
+	ExpiresIn   int64  `json:"expires_in"`
+	ExpiresTime int64
+}
+
+const getJsapiTicketUrl = "https://api.weixin.qq.com/cgi-bin/ticket/getticket"
+
+func (w *Weapp) GetJsapiTicket(ctx context.Context, accessToken string) (*WeappJsapiTicket, error) {
+	res, err := http.Get(fmt.Sprintf("%s?access_token=%s&type=jsapi", getJsapiTicketUrl, accessToken))
+	if err != nil {
+		return nil, err
+	}
+	var t WeappJsapiTicket
 	err = json.NewDecoder(res.Body).Decode(&t)
 	res.Body.Close()
 	if err != nil {

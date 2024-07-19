@@ -8,10 +8,10 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	github.com/iautre/snowflake v1.0.0
-	github.com/redis/go-redis/v9 v9.5.4
+	github.com/redis/go-redis/v9 v9.6.0
 	github.com/sony/sonyflake v1.2.0
 	go.mongodb.org/mongo-driver v1.16.0
-	golang.org/x/exp v0.0.0-20240707233637-46b078467d37
+	golang.org/x/exp v0.0.0-20240716175740-e3f259677ff7
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.11
 )
