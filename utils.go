@@ -1,6 +1,10 @@
 package gowk
 
-import "reflect"
+import (
+	"crypto/tls"
+	"net/http"
+	"reflect"
+)
 
 func Struct2Map(obj any) (data map[string]any, err error) {
 	data = make(map[string]any)
@@ -11,4 +15,11 @@ func Struct2Map(obj any) (data map[string]any, err error) {
 	}
 	err = nil
 	return
+}
+
+func HttpClient() *http.Client {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	return &http.Client{Transport: tr}
 }

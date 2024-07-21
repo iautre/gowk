@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/iautre/gowk/conf"
-	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -151,7 +150,7 @@ func NewWeapp() *Weapp {
 }
 
 func (w *Weapp) GetAccessToken(ctx context.Context) (*WeappToken, error) {
-	res, err := http.Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", getAccessTokenUrl, w.appid, w.secret))
+	res, err := HttpClient().Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", getAccessTokenUrl, w.appid, w.secret))
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +177,7 @@ type WeappJsapiTicket struct {
 const getJsapiTicketUrl = "https://api.weixin.qq.com/cgi-bin/ticket/getticket"
 
 func (w *Weapp) GetJsapiTicket(ctx context.Context, accessToken string) (*WeappJsapiTicket, error) {
-	res, err := http.Get(fmt.Sprintf("%s?access_token=%s&type=jsapi", getJsapiTicketUrl, accessToken))
+	res, err := HttpClient().Get(fmt.Sprintf("%s?access_token=%s&type=jsapi", getJsapiTicketUrl, accessToken))
 	if err != nil {
 		return nil, err
 	}
