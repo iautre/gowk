@@ -18,11 +18,16 @@ type DatabaseConf struct {
 type ServerConf struct {
 	Addr string `toml:"addr"`
 }
-type ReidsConf struct {
+type RedisConf struct {
 	Host     string `json:"host" toml:"host"`
 	Port     int    `json:"port" toml:"port"`
 	Password string `json:"password" toml:"password"`
 	DB       int    `json:"db" toml:"db"`
+}
+type WeappConf struct {
+	Appid       string `json:"appid" toml:"appid"`
+	Secret      string `json:"secret" toml:"secret"`
+	JsapiTicket bool   `json:"jsapi_ticket" toml:"jsapi_ticket"`
 }
 
 var (
@@ -30,16 +35,20 @@ var (
 	dbMap     map[string]*DatabaseConf = map[string]*DatabaseConf{}
 	dbs       []*DatabaseConf
 	server    *ServerConf
-	redisConf *ReidsConf
+	redisConf *RedisConf
+	weappConf *WeappConf
 )
 
-func Redis() *ReidsConf {
+func Redis() *RedisConf {
 	return redisConf
 }
 func HasRedis() bool {
 	return redisConf != nil
 }
-
+func Weapp() *WeappConf { return weappConf }
+func HasWeapp() bool {
+	return weappConf != nil
+}
 func Server() *ServerConf {
 	return server
 }

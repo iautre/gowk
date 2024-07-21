@@ -4,4 +4,5 @@ func init() {
 
 	initDB()
 	initRedis()
+	initWeapp()
 }

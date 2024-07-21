@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/iautre/gowk/conf"
+	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -122,9 +124,35 @@ func (d *defaultToken) LoadToken(key string) (*Token, error) {
 *微信相关
  */
 
+func initWeapp() {
+	go func() {
+		ticker := time.NewTicker((7200 - 60) * time.Second)
+		var weapp Weapp
+		weapp.InitWeapp()
+		for {
+			select {
+			case <-ticker.C:
+				weapp.InitWeapp()
+			}
+		}
+	}()
+}
+func GetWeappAccessToken() string {
+	return weapp_access_token.Load().AccessToken
+}
+
+func GetWeappJsapiTicket() string {
+	return weapp_jsapi_ticket.Load().Ticket
+}
+
+var (
+	weapp_access_token atomic.Pointer[WeappAccessToken]
+	weapp_jsapi_ticket atomic.Pointer[WeappJsapiTicket]
+)
+
 type Weapp struct {
-	appid  string
-	secret string
+	AccessToken string `json:"access_token"`
+	Ticket      string `json:"ticket"`
 }
 
 type WeappErr struct {
@@ -132,29 +160,65 @@ type WeappErr struct {
 	Errmsg  string `json:"errmsg"`
 }
 
-type WeappToken struct {
+type WeappAccessToken struct {
 	WeappErr
 	AccessToken string `json:"access_token"`
 	ExpiresIn   int64  `json:"expires_in"`
 	ExpiresTime int64
 }
+type WeappJsapiTicket struct {
+	WeappErr
+	Ticket      string `json:"ticket"`
+	ExpiresIn   int64  `json:"expires_in"`
+	ExpiresTime int64
+}
 
-const getAccessTokenUrl = "https://api.weixin.qq.com/cgi-bin/token"
-
-func NewWeapp() *Weapp {
-	temp := conf.Get[map[string]any]("weapp")
-	return &Weapp{
-		appid:  (*temp)["appid"].(string),
-		secret: (*temp)["secret"].(string),
+func (w *Weapp) InitWeapp() {
+	slog.Info("获取微信access_token")
+	err := w.SetAccessToken()
+	if err != nil {
+		slog.Error(err.Error())
+	} else {
+		slog.Info("获取微信jsapi_ticket")
+		if err := w.SetJsapiTicket(); err != nil {
+			slog.Error(err.Error())
+		}
 	}
 }
 
-func (w *Weapp) GetAccessToken(ctx context.Context) (*WeappToken, error) {
-	res, err := HttpClient().Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", getAccessTokenUrl, w.appid, w.secret))
+func (w *Weapp) SetAccessToken() error {
+	wt, err := w.GetAccessToken(context.TODO())
+	if err != nil {
+		slog.Error(err.Error())
+		return err
+	}
+	weapp_access_token.Store(wt)
+	return nil
+}
+func (w *Weapp) SetJsapiTicket() error {
+	if conf.Weapp().JsapiTicket {
+		wt, err := w.GetJsapiTicket(context.TODO(), weapp_access_token.Load().AccessToken)
+		if err != nil {
+			slog.Error(err.Error())
+			return err
+		}
+		weapp_jsapi_ticket.Store(wt)
+		return nil
+	}
+	return errors.New("未配置jsapi_ticket")
+}
+
+const getAccessTokenUrl = "https://api.weixin.qq.com/cgi-bin/token"
+
+func (w *Weapp) GetAccessToken(ctx context.Context) (*WeappAccessToken, error) {
+	if !conf.HasWeapp() {
+		return nil, errors.New("weapp配置错误")
+	}
+	res, err := HttpClient().Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", getAccessTokenUrl, conf.Weapp().Appid, conf.Weapp().Secret))
 	if err != nil {
 		return nil, err
 	}
-	var t WeappToken
+	var t WeappAccessToken
 	err = json.NewDecoder(res.Body).Decode(&t)
 	res.Body.Close()
 	if err != nil {
@@ -165,13 +229,6 @@ func (w *Weapp) GetAccessToken(ctx context.Context) (*WeappToken, error) {
 	}
 	t.ExpiresTime = t.ExpiresIn + time.Now().Unix()
 	return &t, nil
-}
-
-type WeappJsapiTicket struct {
-	WeappErr
-	Ticket      string `json:"ticket"`
-	ExpiresIn   int64  `json:"expires_in"`
-	ExpiresTime int64
 }
 
 const getJsapiTicketUrl = "https://api.weixin.qq.com/cgi-bin/ticket/getticket"

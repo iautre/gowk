@@ -49,6 +49,10 @@ func Init(path string) {
 			if temp, ok := v.(map[string]any); ok {
 				redisConf = toRedisConf(temp)
 			}
+		} else if strings.ToLower(k) == "weapp" {
+			if temp, ok := v.(map[string]any); ok {
+				weappConf = toWeappConf(temp)
+			}
 		} else {
 			confMap[k] = v
 		}
@@ -81,9 +85,15 @@ func toDatabaseConf(database map[string]any) (string, *DatabaseConf) {
 	return key, &data
 }
 
-func toRedisConf(redis map[string]any) *ReidsConf {
+func toRedisConf(redis map[string]any) *RedisConf {
 	buf, _ := json.Marshal(redis)
-	var data ReidsConf
+	var data RedisConf
+	json.Unmarshal(buf, &data)
+	return &data
+}
+func toWeappConf(redis map[string]any) *WeappConf {
+	buf, _ := json.Marshal(redis)
+	var data WeappConf
 	json.Unmarshal(buf, &data)
 	return &data
 }
