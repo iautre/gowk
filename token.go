@@ -125,17 +125,19 @@ func (d *defaultToken) LoadToken(key string) (*Token, error) {
  */
 
 func initWeapp() {
-	go func() {
-		ticker := time.NewTicker((7200 - 60) * time.Second)
-		var weapp Weapp
-		weapp.InitWeapp()
-		for {
-			select {
-			case <-ticker.C:
-				weapp.InitWeapp()
+	if conf.HasWeapp() {
+		go func() {
+			ticker := time.NewTicker((7200 - 60) * time.Second)
+			var weapp Weapp
+			weapp.InitWeapp()
+			for {
+				select {
+				case <-ticker.C:
+					weapp.InitWeapp()
+				}
 			}
-		}
-	}()
+		}()
+	}
 }
 func GetWeappAccessToken() string {
 	return weapp_access_token.Load().AccessToken
