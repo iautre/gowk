@@ -245,7 +245,10 @@ func (w *Weapp) GetJsapiTicket(ctx context.Context, accessToken string) (*WeappJ
 	}
 	var t WeappJsapiTicket
 	err = json.NewDecoder(res.Body).Decode(&t)
-	res.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	err = res.Body.Close()
 	if err != nil {
 		return nil, err
 	}
