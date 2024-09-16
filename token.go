@@ -199,6 +199,9 @@ func (w *Weapp) SetAccessToken() error {
 }
 func (w *Weapp) SetJsapiTicket() error {
 	if conf.Weapp().JsapiTicket {
+		if weapp_access_token.Load() == nil {
+			return errors.New("jsapi_ticket初始化失败")
+		}
 		wt, err := w.GetJsapiTicket(context.TODO(), weapp_access_token.Load().AccessToken)
 		if err != nil {
 			slog.Error(err.Error())
