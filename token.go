@@ -247,7 +247,7 @@ func (w *Weapp) GetJsapiTicket(ctx context.Context, accessToken string) (*WeappJ
 		return nil, err
 	}
 	if t.Errcode != 0 {
-		return nil, err
+		return nil, errors.New(fmt.Sprintf("errcode:%d, errmsg: %s", t.Errcode, t.Errmsg))
 	}
 	t.ExpiresTime = t.ExpiresIn + time.Now().Unix()
 	return &t, nil
