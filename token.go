@@ -140,10 +140,16 @@ func initWeapp() {
 	}
 }
 func GetWeappAccessToken() string {
+	if weapp_access_token.Load() == nil {
+		return ""
+	}
 	return weapp_access_token.Load().AccessToken
 }
 
 func GetWeappJsapiTicket() string {
+	if weapp_jsapi_ticket.Load() == nil {
+		return ""
+	}
 	return weapp_jsapi_ticket.Load().Ticket
 }
 
