@@ -13,6 +13,13 @@ import (
 	"github.com/iautre/gowk/conf"
 )
 
+type RouteInfo struct {
+	Method      string
+	Path        string
+	Handler     string
+	HandlerFunc func(context.Context)
+}
+
 type HttpServer struct {
 	Handler *http.Server
 	Engine  *gin.Engine
@@ -21,7 +28,7 @@ type HttpServer struct {
 func New() *gin.Engine {
 	slog.SetDefault(Logger(slog.LevelInfo))
 	engine := gin.New()
-	engine.Use(LogTrace(), Recover())
+	engine.Use(GlobalErrorHandler(), LogTrace(), Recover())
 	engine.NoRoute(func(ctx *gin.Context) {
 		ctx.Status(http.StatusNotFound)
 		ctx.Abort()

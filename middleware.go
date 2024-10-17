@@ -1,11 +1,13 @@
 package gowk
 
 import (
+	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
 	"runtime"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 )
 
 // 全局统一处理错误
@@ -48,5 +50,19 @@ func LogTrace() gin.HandlerFunc {
 func NotFound() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		Fail(ctx, NOT_FOUND)
+	}
+}
+
+func GlobalErrorHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Next()
+		if len(ctx.Errors) > 0 {
+			var myErr *ErrorCode
+			if errors.As(ctx.Errors.Last().Err, myErr) == false {
+				myErr = NewError(ctx.Errors.Last().Err.Error())
+			}
+			ctx.JSON(http.StatusOK, myErr)
+			ctx.Abort()
+		}
 	}
 }

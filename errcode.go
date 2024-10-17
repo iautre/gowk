@@ -1,6 +1,7 @@
 package gowk
 
 import (
+	"errors"
 	"net/http"
 )
 
@@ -38,6 +39,20 @@ func NewError(msg string) *ErrorCode {
 		Msg:  msg,
 	}
 }
+func Result(data any) *ErrorCode {
+	return &ErrorCode{
+		Code: OK.Code,
+		Msg:  OK.Msg,
+		Data: data,
+	}
+}
+func Error(err error) *ErrorCode {
+	var errs *ErrorCode
+	if errors.As(err, &errs) {
+		return errs
+	}
+	return NewError(err.Error())
+}
 
 // 错误码
 // 1- 系统
@@ -66,3 +81,8 @@ var (
 	ERR_WS_CONTENT = NewErrorCode(0, "已连接")
 	ERR_WS_CLOSE   = NewErrorCode(-1, "已连接")
 )
+
+// 实现error接口
+func (e *ErrorCode) Error() string {
+	return e.Msg
+}
