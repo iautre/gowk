@@ -51,7 +51,11 @@ func Error(err error) *ErrorCode {
 	if errors.As(err, &errs) {
 		return errs
 	}
-	return NewError(err.Error())
+	return &ErrorCode{
+		Code: 99,
+		Msg:  err.Error(),
+		err:  err,
+	}
 }
 
 // 错误码
