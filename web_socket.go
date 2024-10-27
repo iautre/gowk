@@ -44,9 +44,13 @@ func WebSocketHandlerFunc(si MessageInterface) gin.HandlerFunc {
 			return
 		}
 		defaultMessage.MessageInterface = si
+		client_name := c.GetString(WEB_SOCKET_CLIENT_NAME)
+		if client_name == "" {
+			client_name = conn.RemoteAddr().String()
+		}
 		client := &Client{
 			conn:  conn,
-			name:  c.GetString("name"),
+			name:  client_name,
 			send:  make(chan *Message),
 			serve: defaultMessage,
 		}
