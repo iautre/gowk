@@ -12,7 +12,7 @@ type ErrorCode struct {
 	Msg    string `json:"msg"`
 	Data   any    `json:"data,omitempty"`
 	err    error  `json:"-"`
-	App    string `json:"app,omitempty"`
+	Sender string `json:"sender,omitempty"`
 }
 
 func Panic(e *ErrorCode, err ...error) {
