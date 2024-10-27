@@ -41,12 +41,12 @@ func NewError(msg string) *ErrorCode {
 		Msg:  msg,
 	}
 }
-func SocketMsg(data any, from string) *ErrorCode {
+func SocketMsg(data any, sender string) *ErrorCode {
 	return &ErrorCode{
-		Code: OK.Code,
-		Msg:  OK.Msg,
-		Data: data,
-		App:  from,
+		Code:   OK.Code,
+		Msg:    OK.Msg,
+		Data:   data,
+		Sender: sender,
 	}
 }
 func Result(data any) *ErrorCode {
