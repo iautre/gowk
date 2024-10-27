@@ -1,7 +1,6 @@
 package gowk
 
 import (
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -18,31 +17,19 @@ func Success(c *gin.Context, data any) {
 	end(c, res)
 	Panic(res)
 }
-func Fail(c *gin.Context, code *ErrorCode, err ...error) {
-	end(c, code, err...)
-	Panic(code, err...)
+func Fail(c *gin.Context, code *ErrorCode) {
+	end(c, code)
+	Panic(code)
 }
-func end(c *gin.Context, code *ErrorCode, err ...error) {
+func end(c *gin.Context, code *ErrorCode) {
 	if c.IsAborted() {
 		return
 	}
-	if len(err) > 0 && err[0] != nil {
-		slog.ErrorContext(c, err[0].Error())
-	}
-	slog.InfoContext(c, fmt.Sprintf("result: %v", string(Message(code, nil))))
+	slog.InfoContext(c, fmt.Sprintf("result: %v", code.String()))
 	if code.Status != 0 {
 		c.JSON(code.Status, code)
 	} else {
 		c.JSON(http.StatusOK, code)
 	}
 	c.Abort()
-}
-func Message(code *ErrorCode, data any) []byte {
-	res := &ErrorCode{
-		Code: code.Code,
-		Msg:  code.Msg,
-		Data: data,
-	}
-	jsonByte, _ := json.Marshal(res)
-	return jsonByte
 }

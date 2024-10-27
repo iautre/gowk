@@ -1,6 +1,7 @@
 package gowk
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 )
@@ -11,6 +12,7 @@ type ErrorCode struct {
 	Msg    string `json:"msg"`
 	Data   any    `json:"data,omitempty"`
 	err    error  `json:"-"`
+	App    string `json:"app,omitempty"`
 }
 
 func Panic(e *ErrorCode, err ...error) {
@@ -37,6 +39,14 @@ func NewError(msg string) *ErrorCode {
 	return &ErrorCode{
 		Code: 99,
 		Msg:  msg,
+	}
+}
+func SocketMsg(data any, from string) *ErrorCode {
+	return &ErrorCode{
+		Code: OK.Code,
+		Msg:  OK.Msg,
+		Data: data,
+		App:  from,
 	}
 }
 func Result(data any) *ErrorCode {
@@ -89,4 +99,9 @@ var (
 // 实现error接口
 func (e *ErrorCode) Error() string {
 	return e.Msg
+}
+
+func (e *ErrorCode) String() string {
+	jsonByte, _ := json.Marshal(e)
+	return string(jsonByte)
 }
