@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -23,8 +24,8 @@ func init() {
 func Init(path string) {
 	var tempConfMap map[string]any
 	if _, err := toml.DecodeFile(path, &tempConfMap); err != nil {
-		fmt.Printf("Fail to read file: %v", err)
-		os.Exit(1)
+		fmt.Printf("Fail to read conf file: %v \n", err)
+		// os.Exit(1)
 	}
 	for k, v := range tempConfMap {
 		if strings.ToLower(k) == "database" {
@@ -55,6 +56,12 @@ func Init(path string) {
 			confMap[k] = v
 		}
 	}
+	if server == nil {
+		server = &ServerConf{
+			Addr: ":8080",
+		}
+	}
+	setEnv2Conf(server)
 	dbs = make([]*DatabaseConf, 0, len(dbMap))
 	for _, v := range dbMap {
 		dbs = append(dbs, v)
@@ -101,4 +108,21 @@ func map2Struct[T any](data map[string]any) *T {
 	var res T
 	json.Unmarshal(buf, &res)
 	return &res
+}
+
+func setEnv2Conf[T ServerConf | RedisConf | DatabaseConf](t *T) {
+	ty := reflect.TypeOf(t).Elem()
+	tv := reflect.ValueOf(t).Elem()
+	for i := 0; i < ty.NumField(); i++ {
+		field := ty.Field(i)
+		// 获取结构体类型名和字段名
+		typeName := strings.ReplaceAll(strings.ToUpper(ty.Name()), "CONF", "")
+		fieldName := strings.ToUpper(field.Name)
+
+		// 组合成字符串，例如：ServerConf_Addr
+		key := typeName + "_" + fieldName
+		if val := os.Getenv(key); val != "" {
+			tv.Field(i).SetString(val)
+		}
+	}
 }
