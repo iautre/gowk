@@ -66,9 +66,16 @@ func (h *HttpServer) Run() {
 
 func (h *HttpServer) ServerRun() {
 	go func() {
-		log.Printf(" [INFO] HttpServerRun:%s\n", conf.Server().Addr)
-		if err := h.Handler.ListenAndServeTLS(conf.Server().Cert, conf.Server().Key); err != nil {
-			log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", conf.Server().Addr, err)
+		if conf.Server().Cert == "" {
+			log.Printf(" [INFO] HttpServerRun:%s\n", conf.Server().Addr)
+			if err := h.Handler.ListenAndServe(); err != nil {
+				log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", conf.Server().Addr, err)
+			}
+		} else {
+			log.Printf(" [INFO] Http2ServerRun:%s\n", conf.Server().Addr)
+			if err := h.Handler.ListenAndServeTLS(conf.Server().Cert, conf.Server().Key); err != nil {
+				log.Fatalf(" [ERROR] Http2ServerRun:%s err:%v\n", conf.Server().Addr, err)
+			}
 		}
 	}()
 }
