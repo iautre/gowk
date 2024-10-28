@@ -29,7 +29,7 @@ var defaultMessage = &Server{
 }
 
 type MessageInterface interface {
-	ReadMessage(*Message) *ErrorCode
+	HandlerMessage(*Message) error
 }
 
 func SendMessage(sm *Message) error {
@@ -107,10 +107,14 @@ func (s *Server) registerClient(client *Client) {
 	s.clients[client.name] = client
 }
 func (s *Server) handlerMessage(message *Message) {
-	err := s.MessageInterface.ReadMessage(message)
+	err := s.MessageInterface.HandlerMessage(message)
 	if err != nil {
 		slog.Error("消息处理失败，返回给发送者")
-		s.sendMessage(&Message{Receiver: message.Sender, err: err})
+		if e, ok := err.(*ErrorCode); ok {
+			s.sendMessage(&Message{Receiver: message.Sender, err: e})
+		} else {
+			s.sendMessage(&Message{Receiver: message.Sender, err: Error(err)})
+		}
 	}
 }
 func (s *Server) sendMessage(message *Message) error {
