@@ -17,6 +17,8 @@ type DatabaseConf struct {
 }
 type ServerConf struct {
 	Addr string `toml:"addr"`
+	Cert string `toml:"cert"`
+	Key  string `toml:"key"`
 }
 type RedisConf struct {
 	Host     string `json:"host" toml:"host"`

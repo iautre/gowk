@@ -41,9 +41,7 @@ func Init(path string) {
 			}
 		} else if strings.ToLower(k) == "server" {
 			if temp, ok := v.(map[string]any); ok {
-				server = &ServerConf{
-					Addr: fmt.Sprintf("%v", temp["addr"]),
-				}
+				server = map2Struct[ServerConf](temp)
 			}
 		} else if strings.ToLower(k) == "redis" {
 			if temp, ok := v.(map[string]any); ok {
@@ -96,4 +94,11 @@ func toWeappConf(redis map[string]any) *WeappConf {
 	var data WeappConf
 	json.Unmarshal(buf, &data)
 	return &data
+}
+
+func map2Struct[T any](data map[string]any) *T {
+	buf, _ := json.Marshal(data)
+	var res T
+	json.Unmarshal(buf, &res)
+	return &res
 }

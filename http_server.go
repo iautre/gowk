@@ -49,11 +49,11 @@ func (h *HttpServer) Run() {
 	}
 	if h.Handler == nil {
 		h.Handler = &http.Server{
-			Addr:           conf.Server().Addr,
-			Handler:        h.Engine,
-			ReadTimeout:    time.Duration(75) * time.Second,
-			WriteTimeout:   time.Duration(75) * time.Second,
-			MaxHeaderBytes: 1 << uint(32),
+			Addr:    conf.Server().Addr,
+			Handler: h.Engine,
+			// ReadTimeout:    time.Duration(75) * time.Second,
+			// WriteTimeout:   time.Duration(75) * time.Second,
+			// MaxHeaderBytes: 1 << uint(20),
 		}
 	}
 
@@ -67,7 +67,7 @@ func (h *HttpServer) Run() {
 func (h *HttpServer) ServerRun() {
 	go func() {
 		log.Printf(" [INFO] HttpServerRun:%s\n", conf.Server().Addr)
-		if err := h.Handler.ListenAndServe(); err != nil {
+		if err := h.Handler.ListenAndServeTLS(conf.Server().Cert, conf.Server().Key); err != nil {
 			log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", conf.Server().Addr, err)
 		}
 	}()

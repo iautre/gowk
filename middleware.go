@@ -1,7 +1,6 @@
 package gowk
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -49,7 +48,8 @@ func LogTrace() gin.HandlerFunc {
 
 func NotFound() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		Fail(ctx, NOT_FOUND)
+		ctx.JSON(http.StatusNotFound, NotFound)
+		ctx.Abort()
 	}
 }
 
@@ -58,7 +58,9 @@ func GlobalErrorHandler() gin.HandlerFunc {
 		ctx.Next()
 		if len(ctx.Errors) > 0 {
 			var myErr *ErrorCode
-			if errors.As(ctx.Errors.Last().Err, myErr) == false {
+			if e, ok := ctx.Errors.Last().Err.(*ErrorCode); ok {
+				myErr = e
+			} else {
 				myErr = NewError(ctx.Errors.Last().Err.Error())
 			}
 			ctx.JSON(http.StatusOK, myErr)
