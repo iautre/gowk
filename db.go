@@ -1,7 +1,7 @@
 package gowk
 
 import (
-	"sync"
+	"context"
 
 	"github.com/iautre/gowk/conf"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -12,40 +12,28 @@ type dbType interface {
 	*gorm.DB | *mongo.Client
 }
 
-func DBs[T dbType](names ...string) (t T) {
+func Db[T dbType](ctx context.Context) (t T) {
 	var tmp any = t
 	switch tmp.(type) {
 	case *gorm.DB:
-		tmp = GormDB()
+		tmp = GormDB(ctx)
 	case *mongo.Client:
-		tmp = Mongo()
+		tmp = Mongo(ctx)
 	}
 	return tmp.(T)
 }
-func DB(names ...string) *gorm.DB {
-	return GormDB(names...)
+
+func DB(ctx context.Context) *gorm.DB {
+	return GormDB(ctx)
 }
 
 func initDB() {
-	var wg sync.WaitGroup
 	if conf.HasDB() {
-		for _, v := range conf.DBs() {
-			dbConf := v
-			if v.Type == "mysql" || v.Type == "postgresql" || v.Type == "postgres" {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					initGormDBs(dbConf, false)
-				}()
-			} else if v.Type == "mongo" {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					mongos.Init(dbConf, false)
-				}()
-			}
+		switch conf.DB().Type {
+		case "mysql", "postgresql", "postgres":
+			initGormDB(conf.DB())
+		case "mongo":
+			initMongo(conf.DB())
 		}
-
 	}
-	wg.Wait()
 }

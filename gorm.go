@@ -1,6 +1,7 @@
 package gowk
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -12,44 +13,25 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-type gormDB struct {
-	dbs map[string]*gorm.DB
-}
+var default_gormDB *gorm.DB
 
-var gormDBs *gormDB
-
-func GormDB(names ...string) *gorm.DB {
-	if gormDBs == nil {
+func GormDB(ctx context.Context) *gorm.DB {
+	if default_gormDB == nil {
 		log.Panic("未配置数据库")
 	}
-	if len(names) == 0 {
-		if db, ok := gormDBs.dbs["default"]; ok {
-			return db
+	if tx, ok := ctx.Value(TRANSACTION).(*Transaction); ok && tx != nil {
+		if tx.Tx != nil {
+			return tx.Tx
 		}
-		for _, v := range gormDBs.dbs {
-			return v
+		if tx.Begin {
+			tx.Tx = default_gormDB.WithContext(ctx).Begin()
+			return tx.Tx
 		}
 	}
-	if db, ok := gormDBs.dbs[names[0]]; ok {
-		return db
-	}
-	log.Panic("未找到配置数据库")
-	return nil
+	return default_gormDB.WithContext(ctx)
 }
 
-func initGormDBs(dbConf *conf.DatabaseConf, reset bool) {
-	if gormDBs == nil {
-		gormDBs = &gormDB{}
-	}
-	if gormDBs.dbs == nil {
-		gormDBs.dbs = make(map[string]*gorm.DB)
-	}
-	if _, ok := gormDBs.dbs[dbConf.Key]; !ok || reset {
-		gormDBs.dbs[dbConf.Key] = initGormDB(dbConf)
-	}
-}
-
-func initGormDB(dbConf *conf.DatabaseConf) *gorm.DB {
+func initGormDB(dbConf *conf.DatabaseConf) {
 	var dialector gorm.Dialector
 	if dbConf.Type == "mysql" {
 		dsn := fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
@@ -93,5 +75,5 @@ func initGormDB(dbConf *conf.DatabaseConf) *gorm.DB {
 	sqlDB.SetMaxOpenConns(100)
 	// SetConnMaxLifetime 设置了连接可复用的最大时间。
 	sqlDB.SetConnMaxLifetime(time.Hour)
-	return gdb
+	default_gormDB = gdb
 }

@@ -28,7 +28,7 @@ type HttpServer struct {
 func New() *gin.Engine {
 	slog.SetDefault(Logger(slog.LevelInfo))
 	engine := gin.New()
-	engine.Use(GlobalErrorHandler(), LogTrace(), Recover())
+	engine.Use(GlobalErrorHandler(), LogTrace(), Recover(), TransactionHandler())
 	engine.NoRoute(func(ctx *gin.Context) {
 		ctx.Status(http.StatusNotFound)
 		ctx.Abort()

@@ -5,7 +5,6 @@ import (
 )
 
 type DatabaseConf struct {
-	Key         string `json:"key" toml:"key"`
 	Type        string `json:"type" toml:"type"`
 	User        string `json:"user" toml:"user"`
 	Password    string `json:"password" toml:"password"`
@@ -16,9 +15,10 @@ type DatabaseConf struct {
 	MaxPoolSize uint64 `json:"max_pool_size" toml:"max_pool_size"`
 }
 type ServerConf struct {
-	Addr string `toml:"addr"`
-	Cert string `toml:"cert"`
-	Key  string `toml:"key"`
+	Addr   string `toml:"addr"`
+	Cert   string `toml:"cert"`
+	Key    string `toml:"key"`
+	Domain string `toml:"domain"`
 }
 type RedisConf struct {
 	Host     string `json:"host" toml:"host"`
@@ -33,9 +33,8 @@ type WeappConf struct {
 }
 
 var (
-	confMap   map[string]any           = map[string]any{}
-	dbMap     map[string]*DatabaseConf = map[string]*DatabaseConf{}
-	dbs       []*DatabaseConf
+	confMap   map[string]any = map[string]any{}
+	db        *DatabaseConf
 	server    *ServerConf
 	redisConf *RedisConf
 	weappConf *WeappConf
@@ -54,14 +53,12 @@ func HasWeapp() bool {
 func Server() *ServerConf {
 	return server
 }
-func DB(key string) *DatabaseConf {
-	return dbMap[key]
+func DB() *DatabaseConf {
+	return db
 }
-func DBs() []*DatabaseConf {
-	return dbs
-}
+
 func HasDB() bool {
-	return len(dbs) > 0
+	return db != nil
 }
 func Get[T any](key string) *T {
 	if _, ok := confMap[key]; !ok {

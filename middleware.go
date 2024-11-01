@@ -20,15 +20,12 @@ func Recover() gin.HandlerFunc {
 					if e.Code == OK.Code {
 						return
 					}
-					// log.Error(c, e.Msg, e.err)
 					// 返回错误信息
 					end(c, e)
-					// c.Abort()
 				case runtime.Error: // 运行时错误
 					e := err.(runtime.Error)
 					slog.ErrorContext(c, e.Error())
-					end(c, NewError(e.Error()))
-					// c.Abort()
+					end(c, Error(e))
 				default: // 非运行时错误
 					slog.ErrorContext(c, fmt.Sprintf("recover type: %s", tp))
 					slog.ErrorContext(c, fmt.Sprintf("%v", err))

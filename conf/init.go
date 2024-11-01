@@ -29,16 +29,8 @@ func Init(path string) {
 	}
 	for k, v := range tempConfMap {
 		if strings.ToLower(k) == "database" {
-			if databases, ok := v.([]map[string]any); ok {
-				for _, database := range databases {
-					key, d := toDatabaseConf(database)
-					dbMap[key] = d
-					dbs = append(dbs, dbMap[key])
-				}
-			} else if database, ok := v.(map[string]any); ok {
-				key, d := toDatabaseConf(database)
-				dbMap[key] = d
-				dbs = append(dbs, dbMap[key])
+			if temp, ok := v.(map[string]any); ok {
+				db = map2Struct[DatabaseConf](temp)
 			}
 		} else if strings.ToLower(k) == "server" {
 			if temp, ok := v.(map[string]any); ok {
@@ -46,11 +38,11 @@ func Init(path string) {
 			}
 		} else if strings.ToLower(k) == "redis" {
 			if temp, ok := v.(map[string]any); ok {
-				redisConf = toRedisConf(temp)
+				redisConf = map2Struct[RedisConf](temp)
 			}
 		} else if strings.ToLower(k) == "weapp" {
 			if temp, ok := v.(map[string]any); ok {
-				weappConf = toWeappConf(temp)
+				weappConf = map2Struct[WeappConf](temp)
 			}
 		} else {
 			confMap[k] = v
@@ -62,45 +54,6 @@ func Init(path string) {
 		}
 	}
 	setEnv2Conf(server)
-	dbs = make([]*DatabaseConf, 0, len(dbMap))
-	for _, v := range dbMap {
-		dbs = append(dbs, v)
-	}
-}
-
-func toDatabaseConf(database map[string]any) (string, *DatabaseConf) {
-	key := "default"
-	if tempKey, ok := database["key"]; ok {
-		key = tempKey.(string)
-	}
-	buf, _ := json.Marshal(database)
-	var data DatabaseConf
-	json.Unmarshal(buf, &data)
-	// dbMap[key] = &DatabaseConf{
-	// 	Key:         key,
-	// 	Type:        database["type"].(string),
-	// 	User:        database["user"].(string),
-	// 	Password:    database["password"].(string),
-	// 	Host:        database["host"].(string),
-	// 	Name:        database["name"].(string),
-	// 	TablePrefix: database["tablePrefix"].(string),
-	// 	Port:        int(database["port"].(int64)),
-	// 	MaxPoolSize: uint64(database["maxPoolSize"].(int64)),
-	// }
-	return key, &data
-}
-
-func toRedisConf(redis map[string]any) *RedisConf {
-	buf, _ := json.Marshal(redis)
-	var data RedisConf
-	json.Unmarshal(buf, &data)
-	return &data
-}
-func toWeappConf(redis map[string]any) *WeappConf {
-	buf, _ := json.Marshal(redis)
-	var data WeappConf
-	json.Unmarshal(buf, &data)
-	return &data
 }
 
 func map2Struct[T any](data map[string]any) *T {

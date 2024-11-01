@@ -15,11 +15,9 @@ func Success(c *gin.Context, data any) {
 		Data: data,
 	}
 	end(c, res)
-	Panic(res)
 }
 func Fail(c *gin.Context, code *ErrorCode) {
 	end(c, code)
-	Panic(code)
 }
 func end(c *gin.Context, code *ErrorCode) {
 	if c.IsAborted() {

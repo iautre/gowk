@@ -3,6 +3,7 @@ package gowk
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/iautre/gowk/conf"
@@ -10,45 +11,18 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type mongoDB struct {
-	dbs map[string]*mongo.Client
-}
-
 var (
-	mongos *mongoDB = &mongoDB{}
+	default_mongo *mongo.Client
 )
 
-func Mongo(names ...string) *mongo.Client {
-	if mongos == nil || mongos.dbs == nil || len(mongos.dbs) == 0 {
-		panic("未配置mongo数据库")
+func Mongo(ctx context.Context) *mongo.Client {
+	if default_mongo == nil {
+		log.Panic("未配置mongo数据库")
 	}
-	if len(names) == 0 {
-		if db, ok := mongos.dbs["default"]; ok {
-			return db
-		}
-		for _, v := range mongos.dbs {
-			return v
-		}
-	}
-	if db, ok := mongos.dbs[names[0]]; ok {
-		return db
-	}
-	panic("未找到配置数据库")
+	return default_mongo
 }
 
-func (m *mongoDB) Init(dbConf *conf.DatabaseConf, reset bool) {
-	if dbConf.Key == "" {
-		dbConf.Key = "default"
-	}
-	if m.dbs == nil {
-		m.dbs = make(map[string]*mongo.Client)
-	}
-	if _, ok := m.dbs[dbConf.Key]; !ok || reset {
-		m.dbs[dbConf.Key] = m.initDB(dbConf)
-	}
-}
-
-func (m *mongoDB) initDB(dbConf *conf.DatabaseConf) *mongo.Client {
+func initMongo(dbConf *conf.DatabaseConf) {
 	uri := fmt.Sprintf("mongodb://%s:%s@%s:%d",
 		dbConf.User,
 		dbConf.Password,
@@ -61,5 +35,5 @@ func (m *mongoDB) initDB(dbConf *conf.DatabaseConf) *mongo.Client {
 		panic("mongo连接池异常")
 		//Log().Error(err)
 	}
-	return client
+	default_mongo = client
 }
