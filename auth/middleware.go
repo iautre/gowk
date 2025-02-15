@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/iautre/gowk"
+	"github.com/iautre/gowk/auth/constant"
 	"github.com/iautre/gowk/auth/respository"
 )
 
@@ -21,5 +22,5 @@ func CheckAppMiddleware(ctx *gin.Context) {
 		ctx.Error(err)
 		return
 	}
-	ctx.Set(CONTEXT_APP_KEY, app)
+	ctx.Set(constant.CONTEXT_APP_KEY, app)
 }

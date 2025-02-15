@@ -1,4 +1,4 @@
-package auth
+package constant
 
 const (
 	CONTEXT_APP_KEY = "CONTEXT_APP_KEY"
