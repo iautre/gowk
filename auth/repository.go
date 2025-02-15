@@ -11,7 +11,6 @@ type UserRepository interface {
 	GetById(ctx context.Context, id int64) (*User, error)
 	GetByToken(ctx context.Context, token string) (*User, error)
 	GetByPhone(ctx context.Context, phone string) (*User, error)
-	UpdateToken(ctx context.Context, userId int64, token string) error
 }
 
 func NewUserRepository(db ...string) UserRepository {
@@ -43,8 +42,4 @@ func (r *GormUser) GetByPhone(ctx context.Context, phone string) (*User, error) 
 	var d User
 	tx := gowk.DB(ctx).Where("phone = ?", phone).First(&d)
 	return &d, tx.Error
-}
-func (r *GormUser) UpdateToken(ctx context.Context, userId int64, token string) error {
-	tx := gowk.DB(ctx).Model(&User{}).Where("id = ?", userId).Updates(map[string]interface{}{"token": token, "last_login": gowk.Now()})
-	return tx.Error
 }

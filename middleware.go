@@ -38,7 +38,7 @@ func Recover() gin.HandlerFunc {
 	}
 }
 
-// 全局日志链路
+// LogTrace 全局日志链路
 func LogTrace() gin.HandlerFunc {
 	return RequestMiddleware()
 }

@@ -65,13 +65,6 @@ func (u *UserService) Login(ctx *gin.Context, params *LoginParams) *User {
 	}
 	return user
 }
-func (u *UserService) UpdateToken(ctx context.Context, userId int64, token string) {
-	repository := NewUserRepository()
-	err := repository.UpdateToken(ctx, userId, token)
-	if err != nil {
-		gowk.Panic(gowk.NewError("登陆失败"), err)
-	}
-}
 
 // 来自&感谢 https://piaohua.github.io/post/golang/20230527-google-authenticator/
 type OTP struct{}

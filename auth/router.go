@@ -11,7 +11,7 @@ func (a *Auth) Router(r *gin.RouterGroup, relativePath ...string) {
 	} else {
 		ro = r
 	}
-	var u UserController
+	var u UserHandler
 	// ro.GET("/auth/token", a.Token)
 	// ro.GET("/auth/qrcode", a.Qrcode)
 	ro.GET("/auth/smscode", u.Smscode)

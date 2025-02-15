@@ -5,17 +5,15 @@ import (
 )
 
 type User struct {
-	Id        int64      `json:"id"`
-	Phone     string     `json:"phone"`
-	Email     string     `json:"email"`
-	Nickname  string     `json:"nickname"`
-	Group     string     `json:"group"`
-	Status    uint       `json:"status"`
-	Created   *gowk.Time `json:"created"`
-	Updated   *gowk.Time `json:"updated"`
-	Secret    string     `json:"-"` //2FA secret
-	Token     string     `json:"-"`
-	LastLogin *gowk.Time `json:"lastLogin"`
+	Id       int64      `json:"id"`
+	Phone    string     `json:"phone"`
+	Email    string     `json:"email"`
+	Nickname string     `json:"nickname"`
+	Group    string     `json:"group"`
+	Status   uint       `json:"status"`
+	Created  *gowk.Time `json:"created"`
+	Updated  *gowk.Time `json:"updated"`
+	Secret   string     `json:"-"` //2FA secret
 }
 
 func (u *User) TableName() string {

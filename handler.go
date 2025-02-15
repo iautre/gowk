@@ -2,14 +2,14 @@ package gowk
 
 import "github.com/gin-gonic/gin"
 
-type Controller[T any] struct {
+type Handler[T any] struct {
 }
 
-func NewController[T any]() *Controller[T] {
-	return &Controller[T]{}
+func NewHandler[T any]() *Handler[T] {
+	return &Handler[T]{}
 }
 
-func (c *Controller[T]) Page() gin.HandlerFunc {
+func (c *Handler[T]) Page() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var page PageModel[T]
 		if err := c.ShouldBind(&page); err != nil {

@@ -17,9 +17,7 @@ const CONTEXT_TOKEN_KEY = "ATOKEN_CONTEXT_TOKEN_KEY"
 const CONTEXT_TOKEN_VALUE_KEY = "ATOKEN_CONTEXT_TOKEN_VALUE_KEY"
 const CONTEXT_LOGIN_ID_KEY = "ATOKEN_CONTEXT_LOGIN_ID_KEY"
 
-var _defaultTokenHandler TokenHandler = &defaultToken{
-	Token: make(map[string]*Token),
-}
+var _defaultTokenHandler TokenHandler
 var _defaultTokenName string = "atoken"
 var _defaultTokenTimeout int64 = 30 * 24 * 60 * 60 //默认为秒/-1为永久有效
 
@@ -38,14 +36,20 @@ func CheckLoginMiddleware() gin.HandlerFunc {
 func CheckLogin(ctx *gin.Context) {
 	tokenValue := ctx.Request.Header.Get(_defaultTokenName)
 	if tokenValue == "" {
-		Panic(ERR_TOKEN)
+		ctx.Error(ERR_TOKEN)
+		ctx.Abort()
+		return
 	}
-	token, err := _defaultTokenHandler.LoadToken(tokenValue)
+	token, err := _defaultTokenHandler.LoadToken(ctx, tokenValue)
 	if err != nil {
-		Panic(ERR_TOKEN)
+		ctx.Error(ERR_TOKEN)
+		ctx.Abort()
+		return
 	}
 	if token == nil {
-		Panic(ERR_TOKEN)
+		ctx.Error(ERR_TOKEN)
+		ctx.Abort()
+		return
 	}
 	token.setContextToken(ctx, token)
 	ctx.Next()
@@ -75,7 +79,7 @@ func Login[T longIdType](ctx *gin.Context, loginId T) string {
 		LoginId: loginId,
 	}
 	token.setContextToken(ctx, token)
-	_defaultTokenHandler.StoreToken(token.Value, token)
+	_defaultTokenHandler.StoreToken(ctx, token.Value, token)
 	return token.Value
 }
 func (t *Token) setContextToken(ctx *gin.Context, token *Token) {
@@ -100,24 +104,52 @@ func LoginId[T longIdType](ctx context.Context) T {
 }
 
 type TokenHandler interface {
-	StoreToken(tokenValue string, token *Token) error
-	LoadToken(tokenValue string) (*Token, error)
+	StoreToken(context.Context, string, *Token) error
+	LoadToken(context.Context, string) (*Token, error)
 }
 
-type defaultToken struct {
+type defaultTokenStore struct {
 	Token map[string]*Token
 }
 
-func (d *defaultToken) StoreToken(key string, token *Token) error {
+func (d *defaultTokenStore) StoreToken(ctx context.Context, key string, token *Token) error {
 	d.Token[key] = token
 	return nil
 }
-func (d *defaultToken) LoadToken(key string) (*Token, error) {
+func (d *defaultTokenStore) LoadToken(ctx context.Context, key string) (*Token, error) {
 	v, ok := d.Token[key]
 	if !ok {
 		return nil, errors.New("no token")
 	}
 	return v, nil
+}
+
+type redisTokenStore struct {
+}
+
+func (d *redisTokenStore) StoreToken(ctx context.Context, key string, token *Token) error {
+	jsonData, _ := json.Marshal(token)
+	return Redis().Set(ctx, CONTEXT_LOGIN_ID_KEY+"_"+key, string(jsonData), time.Duration(_defaultTokenTimeout)).Err()
+}
+func (d *redisTokenStore) LoadToken(ctx context.Context, key string) (*Token, error) {
+	jsonData, err := Redis().Get(ctx, CONTEXT_LOGIN_ID_KEY+"_"+key).Result()
+	if err != nil {
+		return nil, err
+	}
+	var token Token
+	json.Unmarshal([]byte(jsonData), &token)
+	return &token, nil
+}
+
+// 初始化默认token存储器
+func init() {
+	if conf.HasRedis() {
+		_defaultTokenHandler = &redisTokenStore{}
+	} else {
+		_defaultTokenHandler = &defaultTokenStore{
+			Token: make(map[string]*Token),
+		}
+	}
 }
 
 /**
