@@ -32,7 +32,6 @@ func Recover() gin.HandlerFunc {
 					end(c, NewError(fmt.Sprintf("%v", err)))
 				}
 			}
-			end(c, OK)
 		}()
 		c.Next()
 	}
