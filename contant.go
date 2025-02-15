@@ -5,6 +5,7 @@ var (
 	UID           = "uid"
 	APPKEY        = "AppKey"
 	AUTHORIZATION = "Authorization"
+	ATOKEN        = "Atoken"
 )
 
 // 分隔符

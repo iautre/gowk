@@ -18,7 +18,7 @@ const CONTEXT_TOKEN_VALUE_KEY = "ATOKEN_CONTEXT_TOKEN_VALUE_KEY"
 const CONTEXT_LOGIN_ID_KEY = "ATOKEN_CONTEXT_LOGIN_ID_KEY"
 
 var _defaultTokenHandler TokenHandler
-var _defaultTokenName string = "atoken"
+var _defaultTokenName = "atoken"
 var _defaultTokenTimeout int64 = 30 * 24 * 60 * 60 //默认为秒/-1为永久有效
 
 type Token struct {

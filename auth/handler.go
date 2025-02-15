@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/iautre/gowk/auth/model"
 
 	"github.com/iautre/gowk"
 )
@@ -26,7 +27,11 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		return
 	}
 	var userService UserService
-	user := userService.Login(ctx, &params)
+	user, err := userService.Login(ctx, &params)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
 	token := gowk.Login(ctx, user.Id)
 	gowk.Success(ctx, &LoginRes{
 		Token:    token,
@@ -37,8 +42,12 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 func (u *UserHandler) UserInfo(ctx *gin.Context) {
 	userId := gowk.LoginId[int64](ctx)
 	var userService UserService
-	user := userService.GetById(ctx, userId)
-	gowk.Success(ctx, gowk.CopyByJson[User, UserRes](user))
+	user, err := userService.GetById(ctx, userId)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+	gowk.Success(ctx, gowk.CopyByJson[model.User, UserRes](user))
 }
 func (u *UserHandler) Smscode(ctx *gin.Context) {
 	params := &LoginParams{}
@@ -48,7 +57,11 @@ func (u *UserHandler) Smscode(ctx *gin.Context) {
 		return
 	}
 	var userService UserService
-	user := userService.Login(ctx, params)
+	user, err := userService.Login(ctx, params)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
 	token := gowk.Login(ctx, user.Id)
 	gowk.Success(ctx, &LoginRes{
 		Token:    token,

@@ -5,65 +5,40 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base32"
-	"errors"
+	"github.com/iautre/gowk/auth/model"
+	"github.com/iautre/gowk/auth/respository"
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/iautre/gowk"
 )
-
-// // 获取token
-// func (a *Auth) Token(ctx *gin.Context) {
-
-// }
-
-// // 获取二维码
-// func (a *Auth) Qrcode(ctx *gin.Context) {
-
-// }
-
-// // 获取验证码
-// func (a *Auth) Smscode(ctx *gin.Context) {
-
-// }
-
-const CONTEXT_USER_KEY = "CONTEXT_USER_KEY"
 
 type UserService struct {
 }
 
-func (u *UserService) GetById(ctx context.Context, id int64) *User {
-	repository := NewUserRepository()
-	user, err := repository.GetById(ctx, id)
-	if err != nil {
-		gowk.Panic(gowk.NewError("用户不存在"), err)
-	}
-	return user
+func (u *UserService) GetById(ctx context.Context, id int64) (*model.User, error) {
+	repository := respository.NewUserRepository()
+	return repository.GetById(ctx, id)
 }
 
-func (u *UserService) GetByToken(ctx context.Context, token string) *User {
-	repository := NewUserRepository()
-	user, err := repository.GetByToken(ctx, token)
-	if err != nil {
-		gowk.Panic(gowk.NewError("认证失败"), err)
-	}
-	return user
+func (u *UserService) GetByToken(ctx context.Context, token string) (*model.User, error) {
+	repository := respository.NewUserRepository()
+	return repository.GetByToken(ctx, token)
 }
 
-// 登录
-func (u *UserService) Login(ctx *gin.Context, params *LoginParams) *User {
-	repository := NewUserRepository()
+// Login 登录
+func (u *UserService) Login(ctx context.Context, params *LoginParams) (*model.User, error) {
+	repository := respository.NewUserRepository()
 	user, err := repository.GetByPhone(ctx, params.Account)
 	if err != nil {
-		gowk.Panic(gowk.NewError("登陆失败"), err)
+		return nil, err
 	}
 	// 校验code和account
 	var otp OTP
 	if !otp.CheckCode(user.Secret, params.Code) {
-		gowk.Panic(gowk.NewError("验证码错误"), errors.New("验证码错误"))
+		return nil, gowk.NewError("验证码错误")
 	}
-	return user
+	return user, nil
 }
 
 // 来自&感谢 https://piaohua.github.io/post/golang/20230527-google-authenticator/

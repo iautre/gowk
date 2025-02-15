@@ -1,7 +1,8 @@
-package auth
+package model
 
 import (
 	"github.com/iautre/gowk"
+	"github.com/iautre/gowk/auth"
 )
 
 type User struct {
@@ -25,8 +26,8 @@ func NewUser(phone, email, nickname string) *User {
 		Phone:    phone,
 		Email:    email,
 		Nickname: nickname,
-		Group:    USER_GROUP_DEFAULT,
-		Status:   ENABLE,
+		Group:    auth.USER_GROUP_DEFAULT,
+		Status:   auth.ENABLE,
 		Created:  gowk.Now(),
 		Updated:  gowk.Now(),
 	}
