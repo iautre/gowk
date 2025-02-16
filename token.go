@@ -71,7 +71,7 @@ type longIdType interface {
 	string | int | uint | int64 | uint64
 }
 
-func Login[T longIdType](ctx *gin.Context, loginId T) string {
+func Login[T longIdType](ctx *gin.Context, loginId T) (string, error) {
 	token := &Token{
 		Value:   UUID(),
 		Name:    _defaultTokenName,
@@ -79,8 +79,11 @@ func Login[T longIdType](ctx *gin.Context, loginId T) string {
 		LoginId: loginId,
 	}
 	token.setContextToken(ctx, token)
-	_defaultTokenHandler.StoreToken(ctx, token.Value, token)
-	return token.Value
+	err := _defaultTokenHandler.StoreToken(ctx, token.Value, token)
+	if err != nil {
+		return "", err
+	}
+	return token.Value, nil
 }
 func (t *Token) setContextToken(ctx *gin.Context, token *Token) {
 	ctx.Set(CONTEXT_TOKEN_KEY, token)
@@ -129,7 +132,7 @@ type redisTokenStore struct {
 
 func (d *redisTokenStore) StoreToken(ctx context.Context, key string, token *Token) error {
 	jsonData, _ := json.Marshal(token)
-	return Redis().Set(ctx, CONTEXT_LOGIN_ID_KEY+"_"+key, string(jsonData), time.Duration(_defaultTokenTimeout)).Err()
+	return Redis().Set(ctx, CONTEXT_LOGIN_ID_KEY+"_"+key, string(jsonData), time.Duration(_defaultTokenTimeout)*time.Second).Err()
 }
 func (d *redisTokenStore) LoadToken(ctx context.Context, key string) (*Token, error) {
 	jsonData, err := Redis().Get(ctx, CONTEXT_LOGIN_ID_KEY+"_"+key).Result()

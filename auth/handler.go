@@ -32,7 +32,11 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		ctx.Error(err)
 		return
 	}
-	token := gowk.Login(ctx, user.Id)
+	token, err := gowk.Login(ctx, user.Id)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
 	gowk.Success(ctx, &LoginRes{
 		Token:    token,
 		UserId:   user.Id,
@@ -62,7 +66,11 @@ func (u *UserHandler) Smscode(ctx *gin.Context) {
 		ctx.Error(err)
 		return
 	}
-	token := gowk.Login(ctx, user.Id)
+	token, err := gowk.Login(ctx, user.Id)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
 	gowk.Success(ctx, &LoginRes{
 		Token:    token,
 		UserId:   user.Id,
