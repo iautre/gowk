@@ -18,7 +18,7 @@ func (r *GormUser) GetByKey(ctx context.Context, key string) (*model.User, error
 	tx := gowk.DB(ctx).Where("key = ?", key).First(&d)
 	return &d, tx.Error
 }
-func (r *GormUser) GetById(ctx context.Context, id int64) (*model.User, error) {
+func (r *GormUser) GetById(ctx context.Context, id uint64) (*model.User, error) {
 	var d model.User
 	tx := gowk.DB(ctx).First(&d, id)
 	return &d, tx.Error

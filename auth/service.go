@@ -16,7 +16,7 @@ import (
 type UserService struct {
 }
 
-func (u *UserService) GetById(ctx context.Context, id int64) (*model.User, error) {
+func (u *UserService) GetById(ctx context.Context, id uint64) (*model.User, error) {
 	repository := respository.NewUserRepository()
 	return repository.GetById(ctx, id)
 }

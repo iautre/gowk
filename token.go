@@ -25,7 +25,7 @@ type Token struct {
 	Value   string `json:"value"`
 	Name    string `json:"name"`
 	Timeout int64  `json:"timeout"`
-	LoginId any    `json:"loginId"`
+	LoginId uint64 `json:"loginId"`
 	Device  string `json:"device"`
 }
 
@@ -36,19 +36,16 @@ func CheckLoginMiddleware() gin.HandlerFunc {
 func CheckLogin(ctx *gin.Context) {
 	tokenValue := ctx.Request.Header.Get(_defaultTokenName)
 	if tokenValue == "" {
-		ctx.Error(ERR_TOKEN)
-		ctx.Abort()
+		ctx.Error(ERR_TOKEN_NO)
 		return
 	}
 	token, err := _defaultTokenHandler.LoadToken(ctx, tokenValue)
 	if err != nil {
 		ctx.Error(ERR_TOKEN)
-		ctx.Abort()
 		return
 	}
 	if token == nil {
 		ctx.Error(ERR_TOKEN)
-		ctx.Abort()
 		return
 	}
 	token.setContextToken(ctx, token)
@@ -71,7 +68,7 @@ type longIdType interface {
 	string | int | uint | int64 | uint64
 }
 
-func Login[T longIdType](ctx *gin.Context, loginId T) (string, error) {
+func Login(ctx *gin.Context, loginId uint64) (string, error) {
 	token := &Token{
 		Value:   UUID(),
 		Name:    _defaultTokenName,
@@ -96,14 +93,8 @@ func TokenValue(ctx context.Context) string {
 func TokenInfo(ctx context.Context) *Token {
 	return ctx.Value(CONTEXT_TOKEN_VALUE_KEY).(*Token)
 }
-func LoginId[T longIdType](ctx context.Context) T {
-	var tmp T
-	switch ctx.Value(CONTEXT_LOGIN_ID_KEY).(type) {
-	case T:
-		return ctx.Value(CONTEXT_LOGIN_ID_KEY).(T)
-	default:
-		return tmp
-	}
+func LoginId(ctx context.Context) uint64 {
+	return ctx.Value(CONTEXT_LOGIN_ID_KEY).(uint64)
 }
 
 type TokenHandler interface {

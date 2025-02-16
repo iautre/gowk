@@ -35,6 +35,13 @@ func newAuthErrorCode(code int, msg string) *ErrorCode {
 		Msg:    msg,
 	}
 }
+func TokenError(msg string) *ErrorCode {
+	return &ErrorCode{
+		Status: http.StatusUnauthorized,
+		Code:   http.StatusUnauthorized,
+		Msg:    msg,
+	}
+}
 func NewError(msg string) *ErrorCode {
 	return &ErrorCode{
 		Code: 99,
@@ -84,8 +91,9 @@ var (
 
 	NOT_FOUND = &ErrorCode{Status: 404, Code: 404, Msg: "未找到"}
 
-	ERR_AUTH     = newAuthErrorCode(2001, "认证失败")
-	ERR_TOKEN    = newAuthErrorCode(2101, "无效token")
+	ERR_AUTH     = newAuthErrorCode(401, "认证失败")
+	ERR_TOKEN    = newAuthErrorCode(401, "无效token")
+	ERR_TOKEN_NO = newAuthErrorCode(401, "无token")
 	ERR_PARAM    = NewErrorCode(1401, "参数错误")
 	ERR_SERVER   = NewErrorCode(98, "服务异常")
 	ERR_NOSERVER = NewErrorCode(99, "服务不存在")

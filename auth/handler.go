@@ -44,7 +44,7 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	})
 }
 func (u *UserHandler) UserInfo(ctx *gin.Context) {
-	userId := gowk.LoginId[int64](ctx)
+	userId := gowk.LoginId(ctx)
 	var userService UserService
 	user, err := userService.GetById(ctx, userId)
 	if err != nil {

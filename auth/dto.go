@@ -13,7 +13,7 @@ type LoginParams struct {
 
 type LoginRes struct {
 	Token    string `json:"token"`
-	UserId   int64  `json:"userId"`
+	UserId   uint64 `json:"userId"`
 	Nickname string `json:"nickname"`
 }
 type UserRes struct {
