@@ -14,12 +14,14 @@ func CheckAppMiddleware(ctx *gin.Context) {
 	}
 	if key == "" {
 		ctx.Error(gowk.ERR_AUTH)
+		ctx.Abort()
 		return
 	}
 	repository := respository.NewAppRepository()
 	app, err := repository.GetByKey(ctx, key)
 	if err != nil {
 		ctx.Error(err)
+		ctx.Abort()
 		return
 	}
 	ctx.Set(constant.CONTEXT_APP_KEY, app)
