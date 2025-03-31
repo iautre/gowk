@@ -37,15 +37,18 @@ func CheckLogin(ctx *gin.Context) {
 	tokenValue := ctx.Request.Header.Get(_defaultTokenName)
 	if tokenValue == "" {
 		ctx.Error(ERR_TOKEN_NO)
+		ctx.Abort()
 		return
 	}
 	token, err := _defaultTokenHandler.LoadToken(ctx, tokenValue)
 	if err != nil {
 		ctx.Error(ERR_TOKEN)
+		ctx.Abort()
 		return
 	}
 	if token == nil {
 		ctx.Error(ERR_TOKEN)
+		ctx.Abort()
 		return
 	}
 	token.setContextToken(ctx, token)
