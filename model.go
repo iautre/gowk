@@ -5,10 +5,10 @@ import (
 )
 
 type Model struct {
-	ID      uint           `gorm:"primarykey" json:"id"`
-	Created *Time          `json:"created"`
-	Updated *Time          `json:"updated"`
-	Deleted gorm.DeletedAt `gorm:"index" json:"-"`
+	ID      uint64 `gorm:"primarykey" json:"id"`
+	Created *Time  `json:"created"`
+	Updated *Time  `json:"updated"`
+	Deleted *Time  `json:"-"`
 }
 
 func (m *Model) BeforeCreate(tx *gorm.DB) (err error) {

@@ -30,7 +30,7 @@ func (c *Handler[T]) Page() gin.HandlerFunc {
 		Success(c, res)
 	}
 }
-func (c *Handler[T]) Add() gin.HandlerFunc {
+func (c *Handler[T]) Save() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var t T
 		if err := c.ShouldBind(&t); err != nil {
