@@ -2,17 +2,21 @@ package conf
 
 import (
 	"encoding/json"
+	"time"
 )
 
 type DatabaseConf struct {
-	Type        string `json:"type" toml:"type"`
-	User        string `json:"user" toml:"user"`
-	Password    string `json:"password" toml:"password"`
-	Host        string `json:"host" toml:"host"`
-	Name        string `json:"name" toml:"name"`
-	TablePrefix string `json:"table_prefix" toml:"table_prefix"`
-	Port        int    `json:"port" toml:"port"`
-	MaxPoolSize uint64 `json:"max_pool_size" toml:"max_pool_size"`
+	Type            string        `json:"type" toml:"type"`
+	User            string        `json:"user" toml:"user"`
+	Password        string        `json:"password" toml:"password"`
+	Host            string        `json:"host" toml:"host"`
+	Name            string        `json:"name" toml:"name"`
+	TablePrefix     string        `json:"table_prefix" toml:"table_prefix"`
+	Port            int           `json:"port" toml:"port"`
+	MaxPoolSize     uint64        `json:"max_pool_size" toml:"max_pool_size"`
+	MaxOpenConns    int           `json:"max_open_conns" toml:"max_open_conns"`
+	MaxIdleConns    int           `json:"max_idle_conns" toml:"max_idle_conns"`
+	ConnMaxLifetime time.Duration `json:"conn_max_lifetime" toml:"conn_max_lifetime"`
 }
 type ServerConf struct {
 	Addr   string `toml:"addr"`

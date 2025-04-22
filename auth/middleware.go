@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iautre/gowk"
 	"github.com/iautre/gowk/auth/constant"
-	"github.com/iautre/gowk/auth/respository"
+	"github.com/iautre/gowk/auth/repository"
 )
 
 func CheckAppMiddleware(ctx *gin.Context) {
@@ -17,7 +17,7 @@ func CheckAppMiddleware(ctx *gin.Context) {
 		ctx.Abort()
 		return
 	}
-	repository := respository.NewAppRepository()
+	repository := repository.NewAppRepository()
 	app, err := repository.GetByKey(ctx, key)
 	if err != nil {
 		ctx.Error(err)

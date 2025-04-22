@@ -6,7 +6,7 @@ import (
 	"crypto/sha1"
 	"encoding/base32"
 	"github.com/iautre/gowk/auth/model"
-	"github.com/iautre/gowk/auth/respository"
+	"github.com/iautre/gowk/auth/repository"
 	"strconv"
 	"time"
 
@@ -17,18 +17,18 @@ type UserService struct {
 }
 
 func (u *UserService) GetById(ctx context.Context, id uint64) (*model.User, error) {
-	repository := respository.NewUserRepository()
+	repository := repository.NewUserRepository()
 	return repository.GetById(ctx, id)
 }
 
 func (u *UserService) GetByToken(ctx context.Context, token string) (*model.User, error) {
-	repository := respository.NewUserRepository()
+	repository := repository.NewUserRepository()
 	return repository.GetByToken(ctx, token)
 }
 
 // Login 登录
 func (u *UserService) Login(ctx context.Context, params *LoginParams) (*model.User, error) {
-	repository := respository.NewUserRepository()
+	repository := repository.NewUserRepository()
 	user, err := repository.GetByPhone(ctx, params.Account)
 	if err != nil {
 		return nil, err

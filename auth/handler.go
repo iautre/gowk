@@ -32,16 +32,24 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		ctx.Error(err)
 		return
 	}
-	token, err := gowk.Login(ctx, user.Id)
+	token, err := gowk.Login(ctx, user.ID)
 	if err != nil {
 		ctx.Error(err)
 		return
 	}
 	gowk.Success(ctx, &LoginRes{
 		Token:    token,
-		UserId:   user.Id,
+		UserId:   user.ID,
 		Nickname: user.Nickname,
 	})
+}
+func (u *UserHandler) Register(ctx *gin.Context) {
+	var params RegisterParams
+	err := ctx.ShouldBind(&params)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
 }
 func (u *UserHandler) UserInfo(ctx *gin.Context) {
 	userId := gowk.LoginId(ctx)
@@ -66,14 +74,14 @@ func (u *UserHandler) Smscode(ctx *gin.Context) {
 		ctx.Error(err)
 		return
 	}
-	token, err := gowk.Login(ctx, user.Id)
+	token, err := gowk.Login(ctx, user.ID)
 	if err != nil {
 		ctx.Error(err)
 		return
 	}
 	gowk.Success(ctx, &LoginRes{
 		Token:    token,
-		UserId:   user.Id,
+		UserId:   user.ID,
 		Nickname: user.Nickname,
 	})
 }

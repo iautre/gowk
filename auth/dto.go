@@ -2,9 +2,8 @@ package auth
 
 type RegisterParams struct {
 	Phone string `json:"phone"`
-	// Email       string `json:"email"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Email string `json:"email"`
+	Name  string `json:"name"`
 }
 type LoginParams struct {
 	Account string `json:"account"`

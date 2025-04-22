@@ -6,15 +6,13 @@ import (
 )
 
 type User struct {
-	Id       uint64     `json:"id" gorm:"primaryKey"`
-	Phone    string     `json:"phone"`
-	Email    string     `json:"email"`
-	Nickname string     `json:"nickname"`
-	Group    string     `json:"group"`
-	Status   uint       `json:"status"`
-	Created  *gowk.Time `json:"created"`
-	Updated  *gowk.Time `json:"updated"`
-	Secret   string     `json:"-"` //2FA secret
+	gowk.Model
+	Phone    string `json:"phone" gorm:"type:varchar"`
+	Email    string `json:"email" gorm:"type:varchar"`
+	Nickname string `json:"nickname" gorm:"type:varchar"`
+	Group    string `json:"group" gorm:"type:varchar"`
+	Status   uint   `json:"status" gorm:"type:tinyint;default:1"`
+	Secret   string `json:"-" gorm:"type:varchar"` //2FA secret
 }
 
 func (u *User) TableName() string {
@@ -28,8 +26,6 @@ func NewUser(phone, email, nickname string) *User {
 		Nickname: nickname,
 		Group:    constant.USER_GROUP_DEFAULT,
 		Status:   constant.ENABLE,
-		Created:  gowk.Now(),
-		Updated:  gowk.Now(),
 	}
 }
 

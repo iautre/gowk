@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -31,6 +32,15 @@ func Init(path string) {
 		if strings.ToLower(k) == "database" {
 			if temp, ok := v.(map[string]any); ok {
 				db = map2Struct[DatabaseConf](temp)
+				if db.MaxOpenConns == 0 {
+					db.MaxOpenConns = 100
+				}
+				if db.MaxIdleConns == 0 {
+					db.MaxIdleConns = 10
+				}
+				if db.ConnMaxLifetime == 0 {
+					db.ConnMaxLifetime = time.Hour
+				}
 			}
 		} else if strings.ToLower(k) == "server" {
 			if temp, ok := v.(map[string]any); ok {

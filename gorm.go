@@ -3,14 +3,12 @@ package gowk
 import (
 	"context"
 	"fmt"
-	"log"
-	"time"
-
 	"github.com/iautre/gowk/conf"
 	gromMysql "gorm.io/driver/mysql"
 	gromPostgresql "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
+	"log"
 )
 
 var default_gormDB *gorm.DB
@@ -61,6 +59,7 @@ func initGormDB(dbConf *conf.DatabaseConf) {
 			TablePrefix:   dbConf.TablePrefix,
 			SingularTable: true,
 		},
+		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		log.Panic(err)
@@ -70,10 +69,10 @@ func initGormDB(dbConf *conf.DatabaseConf) {
 		log.Panic(err)
 	}
 	// SetMaxIdleConns 设置空闲连接池中连接的最大数量
-	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxIdleConns(dbConf.MaxIdleConns)
 	// SetMaxOpenConns 设置打开数据库连接的最大数量。
-	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetMaxOpenConns(dbConf.MaxOpenConns)
 	// SetConnMaxLifetime 设置了连接可复用的最大时间。
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetConnMaxLifetime(dbConf.ConnMaxLifetime)
 	default_gormDB = gdb
 }

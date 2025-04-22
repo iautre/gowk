@@ -6,8 +6,8 @@ import (
 
 type Model struct {
 	ID      uint64 `gorm:"primarykey" json:"id"`
-	Created *Time  `json:"created"`
-	Updated *Time  `json:"updated"`
+	Created *Time  `json:"created" gorm:"autoCreateTime"`
+	Updated *Time  `json:"updated" gorm:"autoUpdateTime"`
 	Deleted *Time  `json:"-"`
 }
 

@@ -1,9 +1,9 @@
-package respository
+package repository
 
 import (
 	"context"
 	"github.com/iautre/gowk/auth/model"
-	"github.com/iautre/gowk/auth/respository/gorm"
+	"github.com/iautre/gowk/auth/repository/gorm"
 )
 
 type UserRepository interface {
