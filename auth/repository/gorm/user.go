@@ -29,7 +29,7 @@ func (r *GormUser) GetByToken(ctx context.Context, token string) (*model.User, e
 	return &d, tx.Error
 }
 func (r *GormUser) GetByPhone(ctx context.Context, phone string) (*model.User, error) {
-	var d model.User
-	tx := gowk.DB(ctx).Where("phone = ?", phone).First(&d)
-	return &d, tx.Error
+	var d *model.User
+	tx := gowk.DB(ctx).Where("phone = ?", phone).Limit(1).Find(&d)
+	return d, tx.Error
 }

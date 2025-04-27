@@ -1,12 +1,12 @@
 package gowk
 
 import (
+	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
 	"runtime"
-
-	"github.com/gin-gonic/gin"
 )
 
 // 全局统一处理错误
@@ -54,12 +54,19 @@ func GlobalErrorHandler() gin.HandlerFunc {
 		ctx.Next()
 		if len(ctx.Errors) > 0 {
 			var myErr *ErrorCode
-			if e, ok := ctx.Errors.Last().Err.(*ErrorCode); ok {
-				myErr = e
-			} else {
+			if !errors.As(ctx.Errors.Last(), &myErr) {
 				myErr = NewError(ctx.Errors.Last().Err.Error())
 			}
-			ctx.JSON(http.StatusOK, myErr)
+			if myErr.Status != 0 {
+				ctx.JSON(myErr.Status, myErr)
+			} else {
+				ctx.JSON(http.StatusOK, myErr)
+			}
+			ctx.Abort()
+			return
+		}
+		if ctx.IsAborted() == false {
+			ctx.JSON(http.StatusOK, OK)
 			ctx.Abort()
 		}
 	}
