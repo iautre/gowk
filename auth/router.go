@@ -1,8 +1,6 @@
 package auth
 
-import (
-	"github.com/gin-gonic/gin"
-)
+import "github.com/gin-gonic/gin"
 
 func Router(r *gin.RouterGroup, relativePath ...string) *gin.RouterGroup {
 	var ro *gin.RouterGroup

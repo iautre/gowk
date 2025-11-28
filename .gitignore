@@ -6,3 +6,5 @@ log/.DS_Store
 .DS_Store
 conf.toml
 .idea
+/auth/sqlc.yaml
+/auth/sql/

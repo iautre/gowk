@@ -3,8 +3,7 @@ package gowk
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"io"
+	"github.com/jackc/pgx/v5/tracelog"
 	"os"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	gormLogger "gorm.io/gorm/logger"
 )
 
 func Logger(l slog.Level) *slog.Logger {
@@ -20,40 +18,23 @@ func Logger(l slog.Level) *slog.Logger {
 		AddSource: true,
 		Level:     l,
 	}
-	return slog.New(NewTestHandler(os.Stderr, options))
+	return slog.New(&TextHandler{slog.NewTextHandler(os.Stderr, options)})
 }
 
 type TextHandler struct {
-	H *slog.TextHandler
-}
-
-func NewTestHandler(w io.Writer, opts *slog.HandlerOptions) *TextHandler {
-	return &TextHandler{
-		H: slog.NewTextHandler(w, opts),
-	}
-}
-
-func (h *TextHandler) Enabled(ctx context.Context, l slog.Level) bool {
-	return h.H.Enabled(ctx, l)
+	slog.Handler
 }
 
 func (h *TextHandler) Handle(ctx context.Context, r slog.Record) error {
 	r.AddAttrs(getTraceId(ctx)...)
-	return h.H.Handle(ctx, r)
+	return h.Handler.Handle(ctx, r)
 }
 
-func (h *TextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return h.H.WithAttrs(attrs)
-}
-
-func (h *TextHandler) WithGroup(name string) slog.Handler {
-	return h.H.WithGroup(name)
-}
 func getTraceId(ctx context.Context) []slog.Attr {
 	return []slog.Attr{
-		slog.Any(TraceId, ctx.Value(TraceId)),
-		slog.Any(SpanId, ctx.Value(SpanId)),
-		slog.Any(PspanId, ctx.Value(SpanId)),
+		slog.Any(TRACE_ID, ctx.Value(TRACE_ID)),
+		slog.Any(SPAN_ID, ctx.Value(SPAN_ID)),
+		slog.Any(PSPAN_ID, ctx.Value(SPAN_ID)),
 	}
 }
 
@@ -67,32 +48,12 @@ func getTraceId(ctx context.Context) []slog.Attr {
 // 	}
 // }
 
-type GromLogger struct {
-}
-
-func (g *GromLogger) LogMode(gormLogger.LogLevel) gormLogger.Interface {
-	return g
-}
-func (g *GromLogger) Info(ctx context.Context, msg string, args ...interface{}) {
-	slog.InfoContext(ctx, msg)
-}
-func (g *GromLogger) Warn(ctx context.Context, msg string, args ...interface{}) {
-	slog.WarnContext(ctx, msg)
-}
-func (g *GromLogger) Error(ctx context.Context, msg string, args ...interface{}) {
-	slog.ErrorContext(ctx, msg)
-}
-func (g *GromLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
-	sql, rowsAffected := fc()
-	slog.InfoContext(ctx, fmt.Sprintf("%s sql: %s row:%d", begin, sql, rowsAffected))
-}
-
 const (
-	StartTime string = "startTime"
+	START_TIME string = "startTime"
 
-	TraceId string = "traceId"
-	SpanId  string = "spanId"
-	PspanId string = "pspanId"
+	TRACE_ID string = "trace_id"
+	SPAN_ID  string = "span_id"
+	PSPAN_ID string = "pspan_id"
 )
 
 func RequestMiddleware() gin.HandlerFunc {
@@ -119,22 +80,22 @@ func (r *requestLog) RequestInLog(ctx *gin.Context) {
 		"body", slog.AnyValue(ctx.Request.Body),
 	}
 	startTime := time.Now()
-	ctx.Set(StartTime, startTime)
-	traceId := ctx.Request.Header.Get(TraceId)
+	ctx.Set(START_TIME, startTime)
+	traceId := ctx.Request.Header.Get(TRACE_ID)
 	if traceId == "" {
 		traceId = uuid.NewString()
 	}
-	ctx.Set(TraceId, traceId)
-	ctx.Request.Header.Set(TraceId, traceId)
+	ctx.Set(TRACE_ID, traceId)
+	ctx.Request.Header.Set(TRACE_ID, traceId)
 
-	pspanId := ctx.Request.Header.Get(SpanId)
+	pspanId := ctx.Request.Header.Get(SPAN_ID)
 	if pspanId != "" {
-		ctx.Set(PspanId, pspanId)
-		ctx.Request.Header.Set(PspanId, pspanId)
+		ctx.Set(PSPAN_ID, pspanId)
+		ctx.Request.Header.Set(PSPAN_ID, pspanId)
 	}
 	spanId := uuid.NewString()
-	ctx.Set(SpanId, spanId)
-	ctx.Request.Header.Set(SpanId, spanId)
+	ctx.Set(SPAN_ID, spanId)
+	ctx.Request.Header.Set(SPAN_ID, spanId)
 
 	slog.InfoContext(ctx, "start", arrts...)
 }
@@ -143,7 +104,7 @@ func (r *requestLog) RequestInLog(ctx *gin.Context) {
 func (r *requestLog) RequestOutLog(ctx *gin.Context, body *bytes.Buffer) {
 	// after request
 	endTime := time.Now()
-	startTime, _ := ctx.Get(StartTime)
+	startTime, _ := ctx.Get(START_TIME)
 	usedTime := endTime.Sub(startTime.(time.Time)).Milliseconds()
 	arrts := []any{
 		// {Key: "type", Value: slog.StringValue("start")},
@@ -167,4 +128,18 @@ func (w CustomResponseWriter) Write(b []byte) (int, error) {
 func (w CustomResponseWriter) WriteString(s string) (int, error) {
 	w.body.WriteString(s)
 	return w.ResponseWriter.WriteString(s)
+}
+
+type PostgresLogger struct {
+}
+
+func (p *PostgresLogger) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
+	// 提取 SQL 和参数
+	if sql, ok := data["sql"]; ok {
+		args := data["args"]
+		// 打印格式化日志
+		slog.InfoContext(ctx, "[SQL]", sql)
+		slog.InfoContext(ctx, "[SQL]", args)
+	}
+
 }

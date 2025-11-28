@@ -5,38 +5,41 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base32"
-	"github.com/iautre/gowk/auth/model"
-	"github.com/iautre/gowk/auth/repository"
+	"github.com/iautre/gowk"
+	"github.com/iautre/gowk/auth/db"
+	"github.com/jackc/pgx/v5/pgtype"
 	"strconv"
 	"time"
-
-	"github.com/iautre/gowk"
 )
+
+type AppService struct {
+}
+
+func (a *AppService) GetByKey(ctx context.Context, key string) (db.App, error) {
+	return db.New(gowk.DB(ctx)).AppByKey(ctx, pgtype.Text{String: key})
+}
 
 type UserService struct {
 }
 
-func (u *UserService) GetById(ctx context.Context, id uint64) (*model.User, error) {
-	repository := repository.NewUserRepository()
-	return repository.GetById(ctx, id)
+func (u *UserService) GetById(ctx context.Context, id int64) (db.User, error) {
+	return db.New(gowk.DB(ctx)).UserById(ctx, id)
 }
 
-func (u *UserService) GetByToken(ctx context.Context, token string) (*model.User, error) {
-	repository := repository.NewUserRepository()
-	return repository.GetByToken(ctx, token)
+func (u *UserService) GetByPhone(ctx context.Context, photo string) (db.User, error) {
+	return db.New(gowk.DB(ctx)).UserByPhone(ctx, pgtype.Text{String: photo})
 }
 
 // Login 登录
-func (u *UserService) Login(ctx context.Context, params *LoginParams) (*model.User, error) {
-	repository := repository.NewUserRepository()
-	user, err := repository.GetByPhone(ctx, params.Account)
+func (u *UserService) Login(ctx context.Context, params *LoginParams) (db.User, error) {
+	user, err := u.GetByPhone(ctx, params.Account)
 	if err != nil {
-		return nil, err
+		return db.User{}, err
 	}
 	// 校验code和account
 	var otp OTP
-	if !otp.CheckCode(user.Secret, params.Code) {
-		return nil, gowk.NewError("验证码错误")
+	if !otp.CheckCode(user.Secret.String, params.Code) {
+		return db.User{}, gowk.NewError("验证码错误")
 	}
 	return user, nil
 }

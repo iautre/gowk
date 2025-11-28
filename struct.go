@@ -21,9 +21,9 @@ func CopyToStructSlice(old interface{}) interface{} {
 	return sliceObj.Interface()
 }
 
-func CopyByJson[O any, N any](o *O) *N {
+func CopyByJson[O any, N any](o O) N {
 	bytes, _ := json.Marshal(o)
 	var n N
 	json.Unmarshal(bytes, &n)
-	return &n
+	return n
 }

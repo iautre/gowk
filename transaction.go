@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"log/slog"
 	"sync"
-
-	"gorm.io/gorm"
 )
 
 const (
@@ -17,7 +16,7 @@ const (
 type Transaction struct {
 	Begin bool
 	mu    sync.Mutex
-	Tx    *gorm.DB
+	Tx    pgx.Tx
 }
 
 func TransactionHandler() gin.HandlerFunc {
@@ -64,7 +63,7 @@ func Commit(ctx context.Context) {
 	tx.mu.Lock()
 	defer tx.mu.Unlock()
 	if tx.Begin && tx.Tx != nil {
-		if err := tx.Tx.Commit().Error; err != nil {
+		if err := tx.Tx.Commit(ctx); err != nil {
 			slog.ErrorContext(ctx, "事务提交失败", err.Error())
 		}
 		tx.Begin = false
@@ -77,7 +76,7 @@ func Rollback(ctx context.Context) {
 	tx.mu.Lock()
 	defer tx.mu.Unlock()
 	if tx.Begin && tx.Tx != nil {
-		if err := tx.Tx.Rollback().Error; err != nil {
+		if err := tx.Tx.Rollback(ctx); err != nil {
 			slog.ErrorContext(ctx, "事务回滚失败", err.Error())
 		}
 		tx.Begin = false

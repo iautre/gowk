@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iautre/gowk/conf"
 )
 
 type RouteInfo struct {
@@ -49,7 +48,7 @@ func (h *HttpServer) Run() {
 	}
 	if h.Handler == nil {
 		h.Handler = &http.Server{
-			Addr:    conf.Server().Addr,
+			Addr:    SERVER_ADDR,
 			Handler: h.Engine,
 			// ReadTimeout:    time.Duration(75) * time.Second,
 			// WriteTimeout:   time.Duration(75) * time.Second,
@@ -66,23 +65,18 @@ func (h *HttpServer) Run() {
 
 func (h *HttpServer) ServerRun() {
 	go func() {
-		if conf.Server().Cert == "" {
-			log.Printf(" [INFO] HttpServerRun:%s\n", conf.Server().Addr)
-			if err := h.Handler.ListenAndServe(); err != nil {
-				log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", conf.Server().Addr, err)
-			}
-		} else {
-			log.Printf(" [INFO] Http2ServerRun:%s\n", conf.Server().Addr)
-			if err := h.Handler.ListenAndServeTLS(conf.Server().Cert, conf.Server().Key); err != nil {
-				log.Fatalf(" [ERROR] Http2ServerRun:%s err:%v\n", conf.Server().Addr, err)
-			}
+		log.Printf(" [INFO] HttpServerRun:%s\n", SERVER_ADDR)
+		if err := h.Handler.ListenAndServe(); err != nil {
+			log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", SERVER_ADDR, err)
 		}
+		initPostgres()
 	}()
 }
 
 func (h *HttpServer) ServerStop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	closePostgres()
 	if err := h.Handler.Shutdown(ctx); err != nil {
 		log.Fatalf(" [ERROR] HttpServerStop err:%v\n", err)
 	}

@@ -2,9 +2,8 @@ package auth
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/iautre/gowk/auth/model"
-
 	"github.com/iautre/gowk"
+	"github.com/iautre/gowk/auth/db"
 )
 
 type UserHandler struct {
@@ -40,7 +39,7 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	gowk.Success(ctx, &LoginRes{
 		Token:    token,
 		UserId:   user.ID,
-		Nickname: user.Nickname,
+		Nickname: user.Nickname.String,
 	})
 }
 func (u *UserHandler) Register(ctx *gin.Context) {
@@ -59,7 +58,7 @@ func (u *UserHandler) UserInfo(ctx *gin.Context) {
 		ctx.Error(err)
 		return
 	}
-	gowk.Success(ctx, gowk.CopyByJson[model.User, UserRes](user))
+	gowk.Success(ctx, gowk.CopyByJson[db.User, UserRes](user))
 }
 func (u *UserHandler) Smscode(ctx *gin.Context) {
 	params := &LoginParams{}
@@ -82,6 +81,6 @@ func (u *UserHandler) Smscode(ctx *gin.Context) {
 	gowk.Success(ctx, &LoginRes{
 		Token:    token,
 		UserId:   user.ID,
-		Nickname: user.Nickname,
+		Nickname: user.Nickname.String,
 	})
 }

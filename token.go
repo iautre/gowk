@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/iautre/gowk/conf"
 	"log/slog"
 	"sync/atomic"
 	"time"
@@ -25,7 +24,7 @@ type Token struct {
 	Value   string `json:"value"`
 	Name    string `json:"name"`
 	Timeout int64  `json:"timeout"`
-	LoginId uint64 `json:"loginId"`
+	LoginId int64  `json:"loginId"`
 	Device  string `json:"device"`
 }
 
@@ -71,7 +70,7 @@ type longIdType interface {
 	string | int | uint | int64 | uint64
 }
 
-func Login(ctx *gin.Context, loginId uint64) (string, error) {
+func Login(ctx *gin.Context, loginId int64) (string, error) {
 	token := &Token{
 		Value:   UUID(),
 		Name:    _defaultTokenName,
@@ -96,8 +95,8 @@ func TokenValue(ctx context.Context) string {
 func TokenInfo(ctx context.Context) *Token {
 	return ctx.Value(CONTEXT_TOKEN_VALUE_KEY).(*Token)
 }
-func LoginId(ctx context.Context) uint64 {
-	return ctx.Value(CONTEXT_LOGIN_ID_KEY).(uint64)
+func LoginId(ctx context.Context) int64 {
+	return ctx.Value(CONTEXT_LOGIN_ID_KEY).(int64)
 }
 
 type TokenHandler interface {
@@ -140,7 +139,7 @@ func (d *redisTokenStore) LoadToken(ctx context.Context, key string) (*Token, er
 
 // 初始化默认token存储器
 func init() {
-	if conf.HasRedis() {
+	if HasRedis() {
 		_defaultTokenHandler = &redisTokenStore{}
 	} else {
 		_defaultTokenHandler = &defaultTokenStore{
@@ -154,7 +153,7 @@ func init() {
  */
 
 func initWeapp() {
-	if conf.HasWeapp() {
+	if HasWeapp() {
 		go func() {
 			ticker := time.NewTicker((7200 - 60) * time.Second)
 			var weapp Weapp
@@ -233,7 +232,7 @@ func (w *Weapp) SetAccessToken() error {
 	return nil
 }
 func (w *Weapp) SetJsapiTicket() error {
-	if conf.Weapp().JsapiTicket {
+	if WEAPP_JSAPI_TICKET == "1" {
 		if weapp_access_token.Load() == nil {
 			return errors.New("jsapi_ticket初始化失败")
 		}
@@ -251,10 +250,10 @@ func (w *Weapp) SetJsapiTicket() error {
 const getAccessTokenUrl = "https://api.weixin.qq.com/cgi-bin/token"
 
 func (w *Weapp) GetAccessToken(ctx context.Context) (*WeappAccessToken, error) {
-	if !conf.HasWeapp() {
+	if !HasWeapp() {
 		return nil, errors.New("weapp配置错误")
 	}
-	res, err := HttpClient().Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", getAccessTokenUrl, conf.Weapp().Appid, conf.Weapp().Secret))
+	res, err := HttpClient().Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", getAccessTokenUrl, WEAPP_APPID, WEAPP_SECRET))
 	if err != nil {
 		return nil, err
 	}
