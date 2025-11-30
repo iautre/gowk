@@ -232,7 +232,7 @@ func (w *Weapp) SetAccessToken() error {
 	return nil
 }
 func (w *Weapp) SetJsapiTicket() error {
-	if WEAPP_JSAPI_TICKET == "1" {
+	if weappJsapiTicket == "1" {
 		if weapp_access_token.Load() == nil {
 			return errors.New("jsapi_ticket初始化失败")
 		}
@@ -253,7 +253,7 @@ func (w *Weapp) GetAccessToken(ctx context.Context) (*WeappAccessToken, error) {
 	if !HasWeapp() {
 		return nil, errors.New("weapp配置错误")
 	}
-	res, err := HttpClient().Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", getAccessTokenUrl, WEAPP_APPID, WEAPP_SECRET))
+	res, err := HttpClient().Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", getAccessTokenUrl, weappAppid, weappSecret))
 	if err != nil {
 		return nil, err
 	}

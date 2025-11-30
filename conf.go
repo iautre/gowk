@@ -30,3 +30,11 @@ func mustAtoi(s string) int {
 	}
 	return 0
 }
+
+func HasRedis() bool {
+	return redisAddr != ""
+}
+
+func HasWeapp() bool {
+	return weappAppid != "" && weappSecret != ""
+}
