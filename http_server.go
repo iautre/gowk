@@ -48,7 +48,7 @@ func (h *HttpServer) Run() {
 	}
 	if h.Handler == nil {
 		h.Handler = &http.Server{
-			Addr:    SERVER_ADDR,
+			Addr:    serverAddr,
 			Handler: h.Engine,
 			// ReadTimeout:    time.Duration(75) * time.Second,
 			// WriteTimeout:   time.Duration(75) * time.Second,
@@ -65,11 +65,10 @@ func (h *HttpServer) Run() {
 
 func (h *HttpServer) ServerRun() {
 	go func() {
-		log.Printf(" [INFO] HttpServerRun:%s\n", SERVER_ADDR)
+		log.Printf(" [INFO] HttpServerRun:%s\n", serverAddr)
 		if err := h.Handler.ListenAndServe(); err != nil {
-			log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", SERVER_ADDR, err)
+			log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", serverAddr, err)
 		}
-		initPostgres()
 	}()
 }
 

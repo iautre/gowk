@@ -5,18 +5,25 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/tracelog"
-	"log"
+	"log/slog"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var default_postgres *pgxpool.Pool
+var defaultPostgres atomic.Pointer[pgxpool.Pool]
+var pgInitOnce sync.Once
 
 func initPostgres() {
-	pgxConfig, err := pgxpool.ParseConfig(DATABASE_DSN)
+	if serverAddr == "" {
+		return
+	}
+	pgxConfig, err := pgxpool.ParseConfig(serverAddr)
 	if err != nil {
-		log.Fatalf("PostgreSQL配置解析异常: %s  err:%v\n", DATABASE_DSN, err)
+		slog.Error("PostgreSQL配置解析异常: %s  err:%v\n", serverAddr, err)
+		return
 	}
 	pgxConfig.ConnConfig.Tracer = &tracelog.TraceLog{
 		Logger:   &PostgresLogger{},
@@ -26,13 +33,14 @@ func initPostgres() {
 	defer cancel()
 	pool, err := pgxpool.NewWithConfig(ctx, pgxConfig)
 	if err != nil {
-		log.Fatalf("PostgreSQL连接池异常: %v\n", err)
+		slog.Error("PostgreSQL连接池异常: %v\n", err)
+		return
 	}
-	default_postgres = pool
+	defaultPostgres.Store(pool)
 }
 func closePostgres() {
-	if default_postgres != nil {
-		default_postgres.Close()
+	if pool := defaultPostgres.Load(); pool != nil {
+		pool.Close()
 	}
 }
 
@@ -51,8 +59,6 @@ func PostgresTx(ctx context.Context) (pgx.Tx, error) {
 }
 
 func Postgres(ctx context.Context) *pgxpool.Pool {
-	if default_postgres == nil {
-		initPostgres()
-	}
-	return default_postgres
+	pgInitOnce.Do(initPostgres)
+	return defaultPostgres.Load()
 }

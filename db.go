@@ -8,7 +8,3 @@ import (
 func DB(ctx context.Context) *pgxpool.Pool {
 	return Postgres(ctx)
 }
-
-func initDB() {
-	initPostgres()
-}
