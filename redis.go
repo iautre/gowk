@@ -16,9 +16,9 @@ func Redis() *redis.Client {
 func initRedis() {
 	if HasRedis() {
 		defaultRedis = redis.NewClient(&redis.Options{
-			Addr:     REDIS_ADDR,
-			Password: REDIS_PASSWORD, // 没有密码，默认值
-			DB:       REDIS_DB,       // 默认DB 0
+			Addr:     redisAddr,
+			Password: redisPassword, // 没有密码，默认值
+			DB:       redisDB,       // 默认DB 0
 		})
 	}
 }
