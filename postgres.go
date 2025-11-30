@@ -17,12 +17,12 @@ var defaultPostgres atomic.Pointer[pgxpool.Pool]
 var pgInitOnce sync.Once
 
 func initPostgres() {
-	if serverAddr == "" {
+	if databaseDsn == "" {
 		return
 	}
-	pgxConfig, err := pgxpool.ParseConfig(serverAddr)
+	pgxConfig, err := pgxpool.ParseConfig(databaseDsn)
 	if err != nil {
-		slog.Error("PostgreSQL配置解析异常: %s  err:%v\n", serverAddr, err)
+		slog.Error("PostgreSQL配置解析异常: %s  err:%v\n", databaseDsn, err)
 		return
 	}
 	pgxConfig.ConnConfig.Tracer = &tracelog.TraceLog{

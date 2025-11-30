@@ -2,14 +2,14 @@ package gowk
 
 import (
 	"github.com/redis/go-redis/v9"
+	"sync"
 )
 
 var defaultRedis *redis.Client
+var redisInitOnce sync.Once
 
 func Redis() *redis.Client {
-	if defaultRedis == nil {
-		initRedis()
-	}
+	redisInitOnce.Do(initRedis)
 	return defaultRedis
 }
 
