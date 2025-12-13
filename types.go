@@ -7,53 +7,52 @@ import (
 	"time"
 )
 
-// DateRange 实现 PostgreSQL daterange 映射
-type DateRange [2]time.Time
+type DateRange [2]string
 
-// Scan 实现 sql.Scanner 接口
-func (dr *DateRange) Scan(src interface{}) error {
-	if src == nil {
+// Scan 实现 Scanner 接口
+func (dr *DateRange) Scan(value interface{}) error {
+	// 将数据库中的值转换为 DateRange 类型
+	if value == nil {
 		return nil
 	}
-
-	var s string
-	switch v := src.(type) {
-	case string:
-		s = v
-	case []byte:
-		s = string(v)
-	default:
-		return fmt.Errorf("cannot scan %T into DateRange", src)
+	val, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("DateRange Scan failed: %v is not a string", value)
 	}
-
-	// 解析 PostgreSQL 范围格式: "[2024-01-01,2024-12-31)"
-	s = strings.Trim(s, "[]()")
-	parts := strings.Split(s, ",")
-	if len(parts) != 2 {
-		return fmt.Errorf("invalid daterange format: %s", s)
+	endStr := val[len(val)-1 : len(val)]
+	// 去除字符串中的括号
+	val = val[1 : len(val)-1]
+	// 分割字符串为起始和结束日期
+	dates := strings.Split(val, ",")
+	if len(dates) != 2 {
+		return fmt.Errorf("DateRange Scan failed: %s is not a valid date range", val)
 	}
-
-	start, err := time.Parse("2006-01-02", strings.TrimSpace(parts[0]))
+	if dates[0] == "" || dates[1] == "" {
+		return nil
+	}
+	// 解析起始和结束日期
+	start, err := time.Parse(time.DateOnly, strings.TrimSpace(dates[0]))
 	if err != nil {
 		return err
 	}
-	end, err := time.Parse("2006-01-02", strings.TrimSpace(parts[1]))
+	dr[0] = start.Format(time.DateOnly)
+	end, err := time.Parse(time.DateOnly, strings.TrimSpace(dates[1]))
 	if err != nil {
 		return err
 	}
-
-	dr[0] = start
-	dr[1] = end
+	//处理结束日期
+	if endStr == ")" {
+		end = end.AddDate(0, 0, -1)
+	}
+	dr[1] = end.Format(time.DateOnly)
 	return nil
 }
 
-// Value 实现 driver.Valuer 接口
+// Value 实现 Valuer 接口
 func (dr DateRange) Value() (driver.Value, error) {
-	if dr[0].IsZero() && dr[1].IsZero() {
+	if dr[0] == "" || dr[1] == "" {
 		return nil, nil
 	}
-	return fmt.Sprintf("[%s,%s)",
-		dr[0].Format("2006-01-02"),
-		dr[1].Format("2006-01-02"),
-	), nil
+	// 将 DateRange 类型转换为数据库可以存储的值
+	return fmt.Sprintf("[%s,%s]", dr[0], dr[1]), nil
 }
