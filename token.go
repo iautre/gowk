@@ -35,18 +35,18 @@ func CheckLoginMiddleware() gin.HandlerFunc {
 func CheckLogin(ctx *gin.Context) {
 	tokenValue := ctx.Request.Header.Get(_defaultTokenName)
 	if tokenValue == "" {
-		ctx.Error(ERR_TOKEN_NO)
+		ctx.Error(ERR_AUTH)
 		ctx.Abort()
 		return
 	}
 	token, err := _defaultTokenHandler.LoadToken(ctx, tokenValue)
 	if err != nil {
-		ctx.Error(ERR_TOKEN)
+		ctx.Error(ERR_AUTH)
 		ctx.Abort()
 		return
 	}
 	if token == nil {
-		ctx.Error(ERR_TOKEN)
+		ctx.Error(ERR_AUTH)
 		ctx.Abort()
 		return
 	}

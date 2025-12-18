@@ -22,10 +22,10 @@ var upgrader = websocket.Upgrader{
 }
 
 var defaultMessage = &Server{
-	clients:    make(map[string]*Client),
+	clients:    make(map[string]*SocketClient),
 	broadcast:  make(chan *Message),
-	register:   make(chan *Client),
-	unregister: make(chan *Client),
+	register:   make(chan *SocketClient),
+	unregister: make(chan *SocketClient),
 }
 
 type MessageInterface interface {
@@ -49,7 +49,7 @@ func WebSocketHandlerFunc(si MessageInterface) gin.HandlerFunc {
 		if client_name == "" {
 			client_name = conn.RemoteAddr().String()
 		}
-		client := &Client{
+		client := &SocketClient{
 			conn:  conn,
 			name:  client_name,
 			send:  make(chan *Message),
@@ -73,9 +73,9 @@ type Message struct {
 }
 
 type Server struct {
-	clients              map[string]*Client
+	clients              map[string]*SocketClient
 	broadcast            chan *Message
-	register, unregister chan *Client
+	register, unregister chan *SocketClient
 	mu                   sync.Mutex
 	MessageInterface     MessageInterface
 }
@@ -93,7 +93,7 @@ func (s *Server) run() {
 	}
 }
 
-func (s *Server) unRegisterClient(client *Client) {
+func (s *Server) unRegisterClient(client *SocketClient) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.clients[client.name]; ok {
@@ -101,7 +101,7 @@ func (s *Server) unRegisterClient(client *Client) {
 		close(client.send)
 	}
 }
-func (s *Server) registerClient(client *Client) {
+func (s *Server) registerClient(client *SocketClient) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.clients[client.name] = client
@@ -138,14 +138,14 @@ func (s *Server) sendMessage(message *Message) error {
 	return nil
 }
 
-type Client struct {
+type SocketClient struct {
 	serve *Server
 	conn  *websocket.Conn
 	send  chan *Message
 	name  string
 }
 
-func (c *Client) writePump() {
+func (c *SocketClient) writePump() {
 	defer func() {
 		c.serve.unregister <- c
 		c.conn.Close()
@@ -161,7 +161,7 @@ func (c *Client) writePump() {
 		}
 	}
 }
-func (c *Client) readPump() {
+func (c *SocketClient) readPump() {
 	defer func() {
 		c.serve.unregister <- c
 		c.conn.Close()

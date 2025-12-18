@@ -8,8 +8,8 @@ import (
 var (
 	serverAddr       = getEnv("SERVER_ADDR", ":3030")
 	databaseDsn      = getEnv("DATABASE_DSN", "")
-	redisAddr        = getEnv("REDIS_ADDR", "redis:6379")
-	redisPassword    = getEnv("REDIS_PASSWORD", "redispassword")
+	redisAddr        = getEnv("REDIS_ADDR", "")
+	redisPassword    = getEnv("REDIS_PASSWORD", "")
 	redisDB          = mustAtoi(getEnv("REDIS_DB", "0"))
 	weappAppid       = getEnv("WEAPP_APPID", "")
 	weappSecret      = getEnv("WEAPP_SECRET", "")
