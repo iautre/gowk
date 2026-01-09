@@ -7,4 +7,8 @@ log/.DS_Store
 conf.toml
 .idea
 /auth/sqlc.yaml
-/auth/sql/
+# /auth/sql/
+/auth/proto/auth_grpc.pb.go
+/auth/proto/auth.pb.go
+/auth/db/
+/auth/sql/insert_oauth2_client.sql

@@ -6,18 +6,18 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-const CONTEXT_TOKEN_KEY = "ATOKEN_CONTEXT_TOKEN_KEY"
-const CONTEXT_TOKEN_VALUE_KEY = "ATOKEN_CONTEXT_TOKEN_VALUE_KEY"
-const CONTEXT_LOGIN_ID_KEY = "ATOKEN_CONTEXT_LOGIN_ID_KEY"
+const ContextTokenKey = "ATOKEN_CONTEXT_TOKEN_KEY"
+const ContextTokenValueKey = "ATOKEN_CONTEXT_TOKEN_VALUE_KEY"
+const ContextLoginIdKey = "ATOKEN_CONTEXT_LOGIN_ID_KEY"
 
 var _defaultTokenHandler TokenHandler
-var _defaultTokenName = "atoken"
 var _defaultTokenTimeout int64 = 30 * 24 * 60 * 60 //默认为秒/-1为永久有效
 
 type Token struct {
@@ -33,7 +33,15 @@ func CheckLoginMiddleware() gin.HandlerFunc {
 }
 
 func CheckLogin(ctx *gin.Context) {
-	tokenValue := ctx.Request.Header.Get(_defaultTokenName)
+
+	authHeader := ctx.GetHeader("Authorization")
+	if authHeader == "" {
+		ctx.Error(ERR_AUTH)
+		ctx.Abort()
+		return
+	}
+
+	tokenValue := strings.TrimPrefix(authHeader, "Bearer ")
 	if tokenValue == "" {
 		ctx.Error(ERR_AUTH)
 		ctx.Abort()
@@ -57,26 +65,20 @@ func CheckLogin(ctx *gin.Context) {
 func SetTokenHandler(handler TokenHandler) {
 	_defaultTokenHandler = handler
 }
-func SetTokenName(name string) {
-	_defaultTokenName = name
-}
 
-// 默认为秒
+// SetTokenTimeout 默认为秒
 func SetTokenTimeout(timeout int64) {
 	_defaultTokenTimeout = timeout
-}
-
-type longIdType interface {
-	string | int | uint | int64 | uint64
 }
 
 func Login(ctx *gin.Context, loginId int64) (string, error) {
 	token := &Token{
 		Value:   UUID(),
-		Name:    _defaultTokenName,
+		Name:    "Bearer",
 		Timeout: _defaultTokenTimeout,
 		LoginId: loginId,
 	}
+	loginWithOidcJwt(ctx, token)
 	token.setContextToken(ctx, token)
 	err := _defaultTokenHandler.StoreToken(ctx, token.Value, token)
 	if err != nil {
@@ -84,19 +86,32 @@ func Login(ctx *gin.Context, loginId int64) (string, error) {
 	}
 	return token.Value, nil
 }
+
+func loginWithOidcJwt(ctx *gin.Context, token *Token) {
+	ctx.SetCookie(
+		"oidc_jwt",
+		token.Value,
+		86400,
+		"/",
+		BaseURL(),
+		true,  // Secure
+		false, // HttpOnly
+	)
+}
+
 func (t *Token) setContextToken(ctx *gin.Context, token *Token) {
-	ctx.Set(CONTEXT_TOKEN_KEY, token)
-	ctx.Set(CONTEXT_TOKEN_VALUE_KEY, token.Value)
-	ctx.Set(CONTEXT_LOGIN_ID_KEY, token.LoginId)
+	ctx.Set(ContextTokenKey, token)
+	ctx.Set(ContextTokenValueKey, token.Value)
+	ctx.Set(ContextLoginIdKey, token.LoginId)
 }
 func TokenValue(ctx context.Context) string {
-	return ctx.Value(CONTEXT_TOKEN_VALUE_KEY).(string)
+	return ctx.Value(ContextTokenValueKey).(string)
 }
 func TokenInfo(ctx context.Context) *Token {
-	return ctx.Value(CONTEXT_TOKEN_VALUE_KEY).(*Token)
+	return ctx.Value(ContextTokenValueKey).(*Token)
 }
 func LoginId(ctx context.Context) int64 {
-	return ctx.Value(CONTEXT_LOGIN_ID_KEY).(int64)
+	return ctx.Value(ContextLoginIdKey).(int64)
 }
 
 type TokenHandler interface {
@@ -125,10 +140,10 @@ type redisTokenStore struct {
 
 func (d *redisTokenStore) StoreToken(ctx context.Context, key string, token *Token) error {
 	jsonData, _ := json.Marshal(token)
-	return Redis().Set(ctx, CONTEXT_LOGIN_ID_KEY+"_"+key, string(jsonData), time.Duration(_defaultTokenTimeout)*time.Second).Err()
+	return Redis().Set(ctx, ContextLoginIdKey+"_"+key, string(jsonData), time.Duration(_defaultTokenTimeout)*time.Second).Err()
 }
 func (d *redisTokenStore) LoadToken(ctx context.Context, key string) (*Token, error) {
-	jsonData, err := Redis().Get(ctx, CONTEXT_LOGIN_ID_KEY+"_"+key).Result()
+	jsonData, err := Redis().Get(ctx, ContextLoginIdKey+"_"+key).Result()
 	if err != nil {
 		return nil, err
 	}

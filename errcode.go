@@ -9,7 +9,7 @@ import (
 type ErrorCode struct {
 	Status int    `json:"-"`
 	Code   int    `json:"code"`
-	Msg    string `json:"msg"`
+	Msg    string `json:"error"`
 	Data   any    `json:"data,omitempty"`
 	err    error  `json:"-"`
 	Sender string `json:"sender,omitempty"`

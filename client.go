@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const CONTEXT_CLIENT_KEY = "AKEY_CONTEXT_CLIENT_KEY"
+const ContextClientKey = "AKEY_CONTEXT_CLIENT_KEY"
 
 var _defaultClientHandler ClientHandler
 var _defaultClientKeyName = "akey"
@@ -55,8 +55,8 @@ func SetClientKeyName(name string) {
 }
 
 func (t *Client) setContextClient(ctx *gin.Context, client *Client) {
-	ctx.Set(CONTEXT_CLIENT_KEY, client)
-	ctx.Set(CONTEXT_LOGIN_ID_KEY, client.LoginId)
+	ctx.Set(ContextClientKey, client)
+	ctx.Set(ContextLoginIdKey, client.LoginId)
 }
 
 type ClientHandler interface {
@@ -89,10 +89,10 @@ type redisClientStore struct {
 
 func (d *redisClientStore) StoreClient(ctx context.Context, key string, client *Client) error {
 	jsonData, _ := json.Marshal(client)
-	return Redis().Set(ctx, CONTEXT_LOGIN_ID_KEY+"_"+key, string(jsonData), time.Duration(_defaultTokenTimeout)*time.Second).Err()
+	return Redis().Set(ctx, ContextLoginIdKey+"_"+key, string(jsonData), time.Duration(_defaultTokenTimeout)*time.Second).Err()
 }
 func (d *redisClientStore) LoadClient(ctx context.Context, key string) (*Client, error) {
-	jsonData, err := Redis().Get(ctx, CONTEXT_LOGIN_ID_KEY+"_"+key).Result()
+	jsonData, err := Redis().Get(ctx, ContextLoginIdKey+"_"+key).Result()
 	if err != nil {
 		return nil, err
 	}

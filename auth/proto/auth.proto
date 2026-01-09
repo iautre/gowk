@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "github.com/iautre/gowk/auth/proto";
+
+// 认证服务定义
+service AuthService {
+  // OAuth2授权码流程
+  rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse);
+  
+  // 获取访问令牌
+  rpc GetToken(TokenRequest) returns (TokenResponse);
+  
+  // 刷新令牌
+  rpc RefreshToken(RefreshTokenRequest) returns (TokenResponse);
+  
+  // 获取用户信息
+  rpc GetUserInfo(UserInfoRequest) returns (UserInfoResponse);
+  
+  // 撤销令牌
+  rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+}
+
+// 授权请求
+message AuthorizeRequest {
+  string client_id = 1;
+  string redirect_uri = 2;
+  string response_type = 3;
+  string scope = 4;
+  string state = 5;
+  string code_challenge = 6;
+  string code_challenge_method = 7;
+  string nonce = 8;
+}
+
+// 授权响应
+message AuthorizeResponse {
+  string code = 1;
+  string state = 2;
+  string redirect_uri = 3;
+  string error = 4;
+  string error_description = 5;
+}
+
+// 令牌请求
+message TokenRequest {
+  string grant_type = 1;
+  string code = 2;
+  string redirect_uri = 3;
+  string client_id = 4;
+  string client_secret = 5;
+  string code_verifier = 6;
+  string refresh_token = 7;
+  string scope = 8;
+}
+
+// 令牌响应
+message TokenResponse {
+  string access_token = 1;
+  string token_type = 2;
+  int64 expires_in = 3;
+  string refresh_token = 4;
+  string scope = 5;
+  string id_token = 6;
+  string error = 7;
+  string error_description = 8;
+}
+
+// 刷新令牌请求
+message RefreshTokenRequest {
+  string refresh_token = 1;
+  string client_id = 2;
+  string client_secret = 3;
+  string scope = 4;
+}
+
+// 用户信息请求
+message UserInfoRequest {
+  string access_token = 1;
+}
+
+// 用户信息响应
+message UserInfoResponse {
+  string sub = 1;
+  string name = 2;
+  string email = 3;
+  string phone = 4;
+  string picture = 5;
+  string nickname = 6;
+  string preferred_username = 7;
+  string updated_at = 8;
+  string error = 9;
+  string error_description = 10;
+}
+
+// 撤销令牌请求
+message RevokeTokenRequest {
+  string token = 1;
+  string token_type_hint = 2;
+  string client_id = 3;
+  string client_secret = 4;
+}
+
+// 撤销令牌响应
+message RevokeTokenResponse {
+  bool success = 1;
+  string error = 2;
+  string error_description = 3;
+}

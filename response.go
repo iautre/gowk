@@ -8,6 +8,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func Response(ctx *gin.Context, statusCode int, data any, err error) {
+	if http.StatusOK == statusCode {
+		ctx.JSON(statusCode, data)
+	} else {
+		ctx.JSON(statusCode, gin.H{
+			"error": err.Error(),
+			"code":  statusCode,
+		})
+	}
+	ctx.Abort()
+}
+
 func Success(c *gin.Context, data any) {
 	res := &ErrorCode{
 		Code: OK.Code,

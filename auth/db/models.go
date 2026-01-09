@@ -26,6 +26,62 @@ type AppData struct {
 	AppID  pgtype.Int4 `json:"app_id"`
 }
 
+type Oauth2AuthorizationCode struct {
+	Code        string             `json:"code"`
+	ClientID    string             `json:"client_id"`
+	UserID      int64              `json:"user_id"`
+	RedirectUri pgtype.Text        `json:"redirect_uri"`
+	Scope       pgtype.Text        `json:"scope"`
+	State       pgtype.Text        `json:"state"`
+	Nonce       pgtype.Text        `json:"nonce"`
+	Expires     pgtype.Timestamptz `json:"expires"`
+	Created     pgtype.Timestamptz `json:"created"`
+}
+
+type Oauth2Client struct {
+	ID              string             `json:"id"`
+	Name            string             `json:"name"`
+	Secret          string             `json:"secret"`
+	RedirectUris    string             `json:"redirect_uris"`
+	Scopes          string             `json:"scopes"`
+	GrantTypes      string             `json:"grant_types"`
+	AccessTokenTtl  int64              `json:"access_token_ttl"`
+	RefreshTokenTtl int64              `json:"refresh_token_ttl"`
+	Created         pgtype.Timestamptz `json:"created"`
+	Updated         pgtype.Timestamptz `json:"updated"`
+}
+
+type Oauth2RefreshToken struct {
+	RefreshToken string             `json:"refresh_token"`
+	ClientID     string             `json:"client_id"`
+	UserID       int64              `json:"user_id"`
+	Scope        pgtype.Text        `json:"scope"`
+	Expires      pgtype.Timestamptz `json:"expires"`
+	Created      pgtype.Timestamptz `json:"created"`
+}
+
+type Oauth2Token struct {
+	AccessToken string             `json:"access_token"`
+	TokenType   string             `json:"token_type"`
+	ClientID    string             `json:"client_id"`
+	UserID      int64              `json:"user_id"`
+	Scope       pgtype.Text        `json:"scope"`
+	Expires     pgtype.Timestamptz `json:"expires"`
+	Created     pgtype.Timestamptz `json:"created"`
+}
+
+type OidcJwk struct {
+	ID      string             `json:"id"`
+	Kid     string             `json:"kid"`
+	Kty     string             `json:"kty"`
+	Use     string             `json:"use"`
+	Alg     string             `json:"alg"`
+	N       string             `json:"n"`
+	E       string             `json:"e"`
+	Created pgtype.Timestamptz `json:"created"`
+	Updated pgtype.Timestamptz `json:"updated"`
+}
+
 type User struct {
 	ID       int64              `json:"id"`
 	Phone    pgtype.Text        `json:"phone"`
