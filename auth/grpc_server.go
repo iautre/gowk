@@ -34,9 +34,9 @@ func (s *AuthServer) OAuth2Token(ctx context.Context, req *authpb.OAuth2TokenReq
 		CodeVerifier: req.CodeVerifier,
 	}
 
-	// Use existing OAuth2Service
+	// Use unified ExchangeToken method
 	var oauth2Service OAuth2Service
-	response, err := oauth2Service.ExchangeCodeForToken(ctx, tokenReq)
+	response, err := oauth2Service.ExchangeToken(ctx, tokenReq)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "token exchange failed: %v", err)
 	}
@@ -134,14 +134,4 @@ func (s *AuthServer) OIDCJwks(ctx context.Context, req *emptypb.Empty) (*authpb.
 	return &authpb.OIDCJwksResponse{
 		Keys: keys,
 	}, nil
-}
-
-// Helper functions
-func isValidRedirectURI(validURIs []string, providedURI string) bool {
-	for _, uri := range validURIs {
-		if uri == providedURI {
-			return true
-		}
-	}
-	return false
 }

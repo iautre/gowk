@@ -291,7 +291,22 @@ func (o *OAuth2Service) buildTokenResponse(ctx context.Context, accessToken, ref
 	return response, nil
 }
 
-func (o *OAuth2Service) ExchangeCodeForToken(ctx context.Context, req *OAuth2TokenRequest) (*OAuth2TokenResponse, error) {
+// ExchangeToken handles OAuth2 token exchange for all grant types
+func (o *OAuth2Service) ExchangeToken(ctx context.Context, req *OAuth2TokenRequest) (*OAuth2TokenResponse, error) {
+	switch req.GrantType {
+	case "authorization_code":
+		return o.handleAuthorizationCodeGrant(ctx, req)
+	case "refresh_token":
+		return o.handleRefreshTokenGrant(ctx, req)
+	case "client_credentials":
+		return o.handleClientCredentialsGrant(ctx, req)
+	default:
+		return nil, gowk.NewError("unsupported grant_type: " + req.GrantType)
+	}
+}
+
+// handleAuthorizationCodeGrant handles authorization_code grant type
+func (o *OAuth2Service) handleAuthorizationCodeGrant(ctx context.Context, req *OAuth2TokenRequest) (*OAuth2TokenResponse, error) {
 	// Validate authorization code
 	authCode, err := o.ValidateAuthorizationCode(ctx, req.Code, req.ClientID)
 	if err != nil {
@@ -306,6 +321,40 @@ func (o *OAuth2Service) ExchangeCodeForToken(ctx context.Context, req *OAuth2Tok
 
 	// Build response with ID token
 	return o.buildTokenResponse(ctx, accessToken, refreshToken, authCode.Scope, true, authCode.UserID, authCode.ClientID, authCode.Nonce.String)
+}
+
+// handleRefreshTokenGrant handles refresh_token grant type
+func (o *OAuth2Service) handleRefreshTokenGrant(ctx context.Context, req *OAuth2TokenRequest) (*OAuth2TokenResponse, error) {
+	if req.RefreshToken == "" {
+		return nil, gowk.NewError("refresh_token is required for refresh_token grant")
+	}
+
+	// Validate refresh token from database
+	queries := o.getQueries(ctx)
+	token, err := queries.GetOAuth2RefreshToken(ctx, req.RefreshToken)
+	if err != nil {
+		return nil, gowk.NewError("invalid or expired refresh token")
+	}
+
+	// Check if refresh token is expired
+	if time.Now().After(token.Expires.Time) {
+		return nil, gowk.NewError("refresh token expired")
+	}
+
+	// Generate and store new access token (reuse refresh token)
+	accessToken, _, err := o.generateAndStoreTokens(ctx, token.ClientID, token.UserID, token.Scope)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build response without ID token (refresh token flow doesn't generate ID token)
+	return o.buildTokenResponse(ctx, accessToken, req.RefreshToken, token.Scope, false, 0, "", "")
+}
+
+// handleClientCredentialsGrant handles client_credentials grant type
+func (o *OAuth2Service) handleClientCredentialsGrant(ctx context.Context, req *OAuth2TokenRequest) (*OAuth2TokenResponse, error) {
+	// TODO: Implement client credentials grant
+	return nil, gowk.NewError("client_credentials grant not implemented yet")
 }
 
 func (o *OAuth2Service) RefreshToken(ctx context.Context, refreshToken string) (*OAuth2TokenResponse, error) {

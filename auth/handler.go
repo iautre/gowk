@@ -257,31 +257,18 @@ func (o *OAuth2Handler) OAuth2Token(ctx *gin.Context) {
 		return
 	}
 
-	switch params.GrantType {
-	case "authorization_code":
-		response, err := o.oauth2Service.ExchangeCodeForToken(ctx, &params)
-		if err != nil {
-			gowk.Response(ctx, http.StatusBadRequest, nil, err)
-			return
-		}
-		ctx.JSON(http.StatusOK, response)
-		ctx.Abort()
-	case "refresh_token":
-		response, err := o.oauth2Service.RefreshToken(ctx, params.RefreshToken)
-		if err != nil {
-			gowk.Response(ctx, http.StatusBadRequest, nil, err)
-			return
-		}
-		ctx.JSON(http.StatusOK, response)
-		ctx.Abort()
-	default:
-		gowk.Response(ctx, http.StatusBadRequest, nil, gowk.NewError("Unsupported grant_type"))
+	// Use unified ExchangeToken method
+	response, err := o.oauth2Service.ExchangeToken(ctx, &params)
+	if err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
 	}
+	gowk.Response(ctx, http.StatusOK, response, nil)
 }
 
 func (o *OAuth2Handler) OIDCDiscovery(ctx *gin.Context) {
 	discovery := o.oidcService.GetDiscoveryDocument()
-	ctx.JSON(200, discovery)
+	gowk.Response(ctx, http.StatusOK, discovery, nil)
 }
 
 func (o *OAuth2Handler) OIDCUserInfo(ctx *gin.Context) {
@@ -303,12 +290,10 @@ func (o *OAuth2Handler) OIDCUserInfo(ctx *gin.Context) {
 		gowk.Response(ctx, http.StatusBadRequest, nil, err)
 		return
 	}
-
-	ctx.JSON(200, userInfo)
-	ctx.Abort()
+	gowk.Response(ctx, http.StatusOK, userInfo, nil)
 }
 
 func (o *OAuth2Handler) OIDCJwks(ctx *gin.Context) {
 	jwks := o.oidcService.GetJwks()
-	ctx.JSON(200, jwks)
+	gowk.Response(ctx, http.StatusOK, jwks, nil)
 }
