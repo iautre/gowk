@@ -333,6 +333,27 @@ func (o *OAuth2Service) RefreshToken(ctx context.Context, refreshToken string) (
 	return o.buildTokenResponse(ctx, accessToken, refreshToken, token.Scope, false, 0, "", "")
 }
 
+// ValidateAccessToken validates access token from database
+func (o *OAuth2Service) ValidateAccessToken(ctx context.Context, accessToken string) (*db.Oauth2Token, error) {
+	if accessToken == "" {
+		return nil, gowk.NewError("access token is required")
+	}
+
+	// Get token from database
+	queries := o.getQueries(ctx)
+	oauth2Token, err := queries.GetOAuth2Token(ctx, accessToken)
+	if err != nil {
+		return nil, gowk.NewError("invalid or expired access token")
+	}
+
+	// Check if token is expired
+	if time.Now().After(oauth2Token.Expires.Time) {
+		return nil, gowk.NewError("access token expired")
+	}
+
+	return &oauth2Token, nil
+}
+
 // SSO Service
 type SSOService struct{}
 

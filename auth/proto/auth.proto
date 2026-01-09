@@ -10,6 +10,7 @@ service AuthService {
   rpc OAuth2Token(OAuth2TokenRequest) returns (OAuth2TokenResponse);
   rpc OIDCUserInfo(OIDCUserInfoRequest) returns (OIDCUserInfoResponse);
   rpc OIDCJwks(google.protobuf.Empty) returns (OIDCJwksResponse);
+  rpc OIDCDiscovery(google.protobuf.Empty) returns (OIDCDiscoveryResponse);
 }
 
 message OAuth2TokenRequest {
@@ -64,4 +65,17 @@ message OIDCJwk {
   string n = 4;
   string e = 5;
   string alg = 6;
+}
+
+message OIDCDiscoveryResponse {
+  string issuer = 1;
+  string authorization_endpoint = 2;
+  string token_endpoint = 3;
+  string userinfo_endpoint = 4;
+  string jwks_uri = 5;
+  repeated string scopes_supported = 6;
+  repeated string response_types_supported = 7;
+  repeated string grant_types_supported = 8;
+  repeated string subject_types_supported = 9;
+  repeated string id_token_signing_alg_values_supported = 10;
 }

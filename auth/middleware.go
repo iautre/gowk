@@ -45,9 +45,9 @@ func OAuth2TokenMiddleware(ctx *gin.Context) {
 		return
 	}
 
-	// Validate token from database
-	queries := db.New(gowk.DB(ctx))
-	oauth2Token, err := queries.GetOAuth2Token(ctx, token)
+	// Use OAuth2Service to validate token
+	var oauth2Service OAuth2Service
+	oauth2Token, err := oauth2Service.ValidateAccessToken(ctx, token)
 	if err != nil {
 		ctx.Error(gowk.NewError("Invalid or expired access token"))
 		ctx.Abort()

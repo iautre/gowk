@@ -1,9 +1,10 @@
 package auth
 
 import (
+	"context"
 	"encoding/base64"
-	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,10 @@ import (
 )
 
 type UserHandler struct {
+}
+
+func NewUserHandler(ctx context.Context) *UserHandler {
+	return &UserHandler{}
 }
 
 func (u *UserHandler) Login(ctx *gin.Context) {
@@ -32,12 +37,7 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		gowk.Response(ctx, http.StatusBadRequest, nil, err)
 		return
 	}
-	ctx.JSON(200, &LoginRes{
-		Token:    token,
-		UserId:   user.ID,
-		Nickname: user.Nickname.String,
-	})
-	ctx.Abort()
+	gowk.Response(ctx, http.StatusOK, token, nil)
 }
 
 func (u *UserHandler) BasicAuthMiddleware(ctx *gin.Context) {
@@ -136,6 +136,7 @@ func (u *UserHandler) Register(ctx *gin.Context) {
 		return
 	}
 }
+
 func (u *UserHandler) UserInfo(ctx *gin.Context) {
 	userId := gowk.LoginId(ctx)
 	var userService UserService
@@ -147,6 +148,7 @@ func (u *UserHandler) UserInfo(ctx *gin.Context) {
 	ctx.JSON(200, gowk.CopyByJson[db.User, UserRes](user))
 	ctx.Abort()
 }
+
 func (u *UserHandler) Smscode(ctx *gin.Context) {
 	params := &LoginParams{}
 	err := ctx.ShouldBind(params)
@@ -173,75 +175,6 @@ func (u *UserHandler) Smscode(ctx *gin.Context) {
 	ctx.Abort()
 }
 
-// OAuth2 Authorization endpoint
-func (u *UserHandler) OAuth2Auth(ctx *gin.Context) {
-	// Parse request parameters
-	var params OAuth2AuthRequest
-	if err := ctx.ShouldBindQuery(&params); err != nil {
-		gowk.Response(ctx, http.StatusBadRequest, nil, err)
-		return
-	}
-
-	// Get current user from context
-	userID := gowk.LoginId(ctx)
-
-	// Validate request using service layer
-	var oauth2Service OAuth2Service
-	_, err := oauth2Service.ValidateOAuth2AuthRequest(ctx, &params)
-	if err != nil {
-		gowk.Response(ctx, http.StatusUnauthorized, nil, err)
-		return
-	}
-
-	// Generate authorization code
-	authCode, err := oauth2Service.GenerateAuthorizationCode(ctx, params.ClientID, userID, params.RedirectURI, params.Scope, params.State, params.Nonce)
-	if err != nil {
-		gowk.Response(ctx, http.StatusBadRequest, nil, err)
-		return
-	}
-
-	// Build redirect URL
-	redirectURL := fmt.Sprintf("%s?code=%s", params.RedirectURI, authCode)
-	if params.State != "" {
-		redirectURL += fmt.Sprintf("&state=%s", params.State)
-	}
-
-	ctx.Redirect(302, redirectURL)
-	ctx.Abort()
-}
-
-// OAuth2 Token endpoint
-func (u *UserHandler) OAuth2Token(ctx *gin.Context) {
-	var params OAuth2TokenRequest
-	err := ctx.ShouldBind(&params)
-	if err != nil {
-		gowk.Response(ctx, http.StatusBadRequest, nil, err)
-		return
-	}
-
-	var oauth2Service OAuth2Service
-	switch params.GrantType {
-	case "authorization_code":
-		response, err := oauth2Service.ExchangeCodeForToken(ctx, &params)
-		if err != nil {
-			gowk.Response(ctx, http.StatusBadRequest, nil, err)
-			return
-		}
-		ctx.JSON(http.StatusOK, response)
-		ctx.Abort()
-	case "refresh_token":
-		response, err := oauth2Service.RefreshToken(ctx, params.RefreshToken)
-		if err != nil {
-			gowk.Response(ctx, http.StatusBadRequest, nil, err)
-			return
-		}
-		ctx.JSON(http.StatusOK, response)
-		ctx.Abort()
-	default:
-		gowk.Response(ctx, http.StatusBadRequest, nil, gowk.NewError("Unsupported grant_type"))
-	}
-}
-
 // SSO Login endpoint
 func (u *UserHandler) SSOLogin(ctx *gin.Context) {
 	var params SSOLoginRequest
@@ -262,16 +195,96 @@ func (u *UserHandler) SSOLogin(ctx *gin.Context) {
 	ctx.Abort()
 }
 
-// OIDC Discovery endpoint
-func (u *UserHandler) OIDCDiscovery(ctx *gin.Context) {
-	var oidcService OIDCService
-	discovery := oidcService.GetDiscoveryDocument()
-	ctx.JSON(200, discovery)
-	ctx.Abort()
+type OAuth2Handler struct {
+	oauth2Service *OAuth2Service
+	oidcService   *OIDCService
 }
 
-// OIDC UserInfo endpoint
-func (u *UserHandler) OIDCUserInfo(ctx *gin.Context) {
+func NewOAuth2Handler(ctx context.Context) *OAuth2Handler {
+	return &OAuth2Handler{
+		oauth2Service: NewOAuth2Service(ctx),
+		oidcService:   &OIDCService{},
+	}
+}
+
+func (o *OAuth2Handler) OAuth2Auth(ctx *gin.Context) {
+	// Parse request parameters
+	var params OAuth2AuthRequest
+	if err := ctx.ShouldBindQuery(&params); err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	// Get user ID from session or token
+	userID := gowk.LoginId(ctx)
+
+	// Validate request using existing service layer
+	_, err := o.oauth2Service.ValidateOAuth2AuthRequest(ctx, &params)
+	if err != nil {
+		gowk.Response(ctx, http.StatusUnauthorized, nil, err)
+		return
+	}
+
+	// Generate authorization code using existing service
+	authCode, err := o.oauth2Service.GenerateAuthorizationCode(ctx, params.ClientID, userID, params.RedirectURI, params.Scope, params.State, params.Nonce)
+	if err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	// Build redirect URL
+	redirectURL, err := url.Parse(params.RedirectURI)
+	if err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	queryParams := redirectURL.Query()
+	queryParams.Set("code", authCode)
+	if params.State != "" {
+		queryParams.Set("state", params.State)
+	}
+	redirectURL.RawQuery = queryParams.Encode()
+
+	ctx.Redirect(http.StatusFound, redirectURL.String())
+}
+
+func (o *OAuth2Handler) OAuth2Token(ctx *gin.Context) {
+	var params OAuth2TokenRequest
+	err := ctx.ShouldBind(&params)
+	if err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	switch params.GrantType {
+	case "authorization_code":
+		response, err := o.oauth2Service.ExchangeCodeForToken(ctx, &params)
+		if err != nil {
+			gowk.Response(ctx, http.StatusBadRequest, nil, err)
+			return
+		}
+		ctx.JSON(http.StatusOK, response)
+		ctx.Abort()
+	case "refresh_token":
+		response, err := o.oauth2Service.RefreshToken(ctx, params.RefreshToken)
+		if err != nil {
+			gowk.Response(ctx, http.StatusBadRequest, nil, err)
+			return
+		}
+		ctx.JSON(http.StatusOK, response)
+		ctx.Abort()
+	default:
+		gowk.Response(ctx, http.StatusBadRequest, nil, gowk.NewError("Unsupported grant_type"))
+	}
+}
+
+func (o *OAuth2Handler) OIDCDiscovery(ctx *gin.Context) {
+	discovery := o.oidcService.GetDiscoveryDocument()
+	ctx.JSON(200, discovery)
+}
+
+func (o *OAuth2Handler) OIDCUserInfo(ctx *gin.Context) {
 	// Get user ID from OAuth2TokenMiddleware
 	userIDInterface, exists := ctx.Get("user_id")
 	if !exists {
@@ -279,10 +292,13 @@ func (u *UserHandler) OIDCUserInfo(ctx *gin.Context) {
 		return
 	}
 
-	userID := userIDInterface.(int64)
+	userID, ok := userIDInterface.(int64)
+	if !ok {
+		gowk.Response(ctx, http.StatusUnauthorized, nil, gowk.NewError("Invalid user ID"))
+		return
+	}
 
-	var oidcService OIDCService
-	userInfo, err := oidcService.GetUserInfo(ctx, userID)
+	userInfo, err := o.oidcService.GetUserInfo(ctx, userID)
 	if err != nil {
 		gowk.Response(ctx, http.StatusBadRequest, nil, err)
 		return
@@ -292,10 +308,7 @@ func (u *UserHandler) OIDCUserInfo(ctx *gin.Context) {
 	ctx.Abort()
 }
 
-// OIDC JWKS endpoint
-func (u *UserHandler) OIDCJwks(ctx *gin.Context) {
-	var oidcService OIDCService
-	jwks := oidcService.GetJwks()
+func (o *OAuth2Handler) OIDCJwks(ctx *gin.Context) {
+	jwks := o.oidcService.GetJwks()
 	ctx.JSON(200, jwks)
-	ctx.Abort()
 }

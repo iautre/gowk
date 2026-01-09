@@ -2,11 +2,14 @@ package auth
 
 import (
 	"context"
+	"crypto"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -206,20 +209,183 @@ func (c *AuthClient) ValidateAndParseIDToken(ctx context.Context, idToken string
 		return nil, fmt.Errorf("public key not found for kid: %s", kid)
 	}
 
-	// 4. 验证JWT签名 (这里简化处理，实际需要完整的JWT库)
-	// TODO: 实现完整的RSA签名验证
-	// 这里先解析payload，实际生产环境应该验证签名
+	// 4. 验证JWT签名
+	if err := verifyJWTSignature(idToken, publicKey); err != nil {
+		return nil, fmt.Errorf("JWT signature verification failed: %v", err)
+	}
 
-	// 5. 解析payload获取用户信息
-	return c.ParseIDToken(idToken)
+	// 5. 解析payload获取用户信息并验证claims
+	userInfo, err := c.parseAndValidateClaims(idToken)
+	if err != nil {
+		return nil, fmt.Errorf("JWT claims validation failed: %v", err)
+	}
+
+	return userInfo, nil
 }
 
 // parseRSAPublicKey 从JWK解析RSA公钥
 func parseRSAPublicKey(jwk *authpb.OIDCJwk) (*rsa.PublicKey, error) {
-	// TODO: 实现完整的JWK到RSA公钥转换
-	// 这里需要解析modulus(n)和exponent(e)
-	// 暂时返回nil，需要完整的RSA实现
-	return nil, fmt.Errorf("RSA public key parsing not implemented yet")
+	if jwk.Kty != "RSA" {
+		return nil, fmt.Errorf("unsupported key type: %s", jwk.Kty)
+	}
+
+	// 解码modulus (n)
+	n, err := base64.RawURLEncoding.DecodeString(jwk.N)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode modulus: %v", err)
+	}
+
+	// 解码exponent (e)
+	e, err := base64.RawURLEncoding.DecodeString(jwk.E)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode exponent: %v", err)
+	}
+
+	// 创建RSA公钥
+	modulus := new(big.Int).SetBytes(n)
+	exponent := new(big.Int).SetBytes(e)
+
+	publicKey := &rsa.PublicKey{
+		N: modulus,
+		E: int(exponent.Int64()),
+	}
+
+	return publicKey, nil
+}
+
+// verifyJWTSignature 验证JWT签名
+func verifyJWTSignature(idToken string, publicKey *rsa.PublicKey) error {
+	parts := strings.Split(idToken, ".")
+	if len(parts) != 3 {
+		return fmt.Errorf("invalid JWT format")
+	}
+
+	// 获取签名部分
+	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil {
+		return fmt.Errorf("failed to decode signature: %v", err)
+	}
+
+	// 创建要验证的数据: header.payload
+	data := parts[0] + "." + parts[1]
+
+	// 根据算法选择哈希函数
+	var hash crypto.Hash
+	switch header := parseJWTHeader(parts[0]); header["alg"] {
+	case "RS256":
+		hash = crypto.SHA256
+	default:
+		return fmt.Errorf("unsupported algorithm: %v", header["alg"])
+	}
+
+	// 计算哈希
+	hasher := hash.New()
+	hasher.Write([]byte(data))
+	hashed := hasher.Sum(nil)
+
+	// 验证签名
+	return rsa.VerifyPKCS1v15(publicKey, hash, hashed, signature)
+}
+
+// parseJWTHeader 解析JWT header
+func parseJWTHeader(headerStr string) map[string]interface{} {
+	headerData, _ := base64Decode(headerStr)
+	var header map[string]interface{}
+	json.Unmarshal(headerData, &header)
+	return header
+}
+
+// parseAndValidateClaims 解析并验证JWT claims
+func (c *AuthClient) parseAndValidateClaims(idToken string) (*authpb.OIDCUserInfoResponse, error) {
+	parts := strings.Split(idToken, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid JWT format")
+	}
+
+	// 解析payload
+	payloadData, err := base64Decode(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode payload: %v", err)
+	}
+
+	var claims map[string]interface{}
+	if err := json.Unmarshal(payloadData, &claims); err != nil {
+		return nil, fmt.Errorf("failed to parse claims: %v", err)
+	}
+
+	// 验证标准claims
+	now := time.Now().Unix()
+
+	// 验证过期时间 (exp)
+	if exp, ok := claims["exp"].(float64); ok {
+		if int64(exp) < now {
+			return nil, fmt.Errorf("token expired at %d", int64(exp))
+		}
+	}
+
+	// 验证生效时间 (nbf)
+	if nbf, ok := claims["nbf"].(float64); ok {
+		if int64(nbf) > now {
+			return nil, fmt.Errorf("token not valid until %d", int64(nbf))
+		}
+	}
+
+	// 验证签发时间 (iat)
+	if iat, ok := claims["iat"].(float64); ok {
+		if int64(iat) > now {
+			return nil, fmt.Errorf("token issued in the future at %d", int64(iat))
+		}
+	}
+
+	// 验证必需的claims
+	if _, ok := claims["sub"].(string); !ok {
+		return nil, fmt.Errorf("missing required claim: sub")
+	}
+
+	// 转换为OIDCUserInfoResponse
+	userInfo := &authpb.OIDCUserInfoResponse{}
+
+	if sub, ok := claims["sub"].(string); ok {
+		userInfo.Sub = sub
+	}
+	if name, ok := claims["name"].(string); ok {
+		userInfo.Name = name
+	}
+	if email, ok := claims["email"].(string); ok {
+		userInfo.Email = email
+	}
+	if emailVerified, ok := claims["email_verified"].(bool); ok {
+		userInfo.EmailVerified = emailVerified
+	}
+	if givenName, ok := claims["given_name"].(string); ok {
+		userInfo.GivenName = givenName
+	}
+	if familyName, ok := claims["family_name"].(string); ok {
+		userInfo.FamilyName = familyName
+	}
+	if nickname, ok := claims["nickname"].(string); ok {
+		userInfo.Nickname = nickname
+	}
+	if preferredUsername, ok := claims["preferred_username"].(string); ok {
+		userInfo.PreferredUsername = preferredUsername
+	}
+	if picture, ok := claims["picture"].(string); ok {
+		userInfo.Picture = picture
+	}
+	if phoneNumber, ok := claims["phone_number"].(string); ok {
+		userInfo.PhoneNumber = phoneNumber
+	}
+	if phoneVerified, ok := claims["phone_number_verified"].(bool); ok {
+		userInfo.PhoneNumberVerified = phoneVerified
+	}
+	if locale, ok := claims["locale"].(string); ok {
+		userInfo.Locale = locale
+	}
+	if updatedAt, ok := claims["updated_at"].(float64); ok {
+		userInfo.UpdatedAt = int64(updatedAt)
+	}
+
+	return userInfo, nil
 }
 
 // base64Decode 安全的base64解码
@@ -244,6 +410,18 @@ func (c *AuthClient) OIDCJwks(ctx context.Context) (*authpb.OIDCJwksResponse, er
 	resp, err := c.authClient.OIDCJwks(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("get JWKS failed: %v", err)
+	}
+
+	return resp, nil
+}
+
+// OIDCDiscovery 获取OIDC发现文档
+func (c *AuthClient) OIDCDiscovery(ctx context.Context) (*authpb.OIDCDiscoveryResponse, error) {
+	req := &emptypb.Empty{}
+
+	resp, err := c.authClient.OIDCDiscovery(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("get OIDC discovery failed: %v", err)
 	}
 
 	return resp, nil
