@@ -1,11 +1,9 @@
 package gowk
 
 import (
-	"context"
 	"log"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,8 +44,6 @@ func Run(config *ServerConfig) {
 
 	// Graceful shutdown with timeout
 	log.Println("Shutting down servers...")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	// Shutdown gRPC server first (it stops immediately)
 	if grpcServer != nil {
@@ -57,11 +53,8 @@ func Run(config *ServerConfig) {
 
 	// Shutdown HTTP server second (with timeout)
 	if httpServer != nil {
-		if err := httpServer.Handler.Shutdown(ctx); err != nil {
-			log.Printf(" [ERROR] HTTP server shutdown error: %v", err)
-		} else {
-			log.Printf(" [INFO] HTTP server stopped")
-		}
+		httpServer.ServerStop()
+		log.Printf(" [INFO] HTTP server stopped")
 	}
 
 	// Close database connection once

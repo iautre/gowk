@@ -49,7 +49,12 @@ func (h *HttpServer) ServerRun() {
 	go func() {
 		log.Printf(" [INFO] HttpServerRun:%s\n", httpServerAddr)
 		if err := h.Handler.ListenAndServe(); err != nil {
-			log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", httpServerAddr, err)
+			// Check if it's a normal shutdown (not a fatal error)
+			if err.Error() == "http: Server closed" {
+				log.Printf(" [INFO] HttpServerRun:%s err:%v\n", httpServerAddr, err)
+			} else {
+				log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", httpServerAddr, err)
+			}
 		}
 	}()
 }

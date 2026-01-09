@@ -1,8 +1,10 @@
 package gowk
 
 import (
+	"context"
 	"log"
 	"net"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -41,8 +43,23 @@ func (s *GrpcServer) ServerRun() {
 }
 
 func (s *GrpcServer) ServerStop() {
-	s.Server.GracefulStop()
-	log.Printf(" [INFO] GrpcServerStop stopped\n")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Create a channel to signal completion
+	done := make(chan struct{})
+	go func() {
+		s.Server.GracefulStop()
+		close(done)
+	}()
+
+	// Wait for graceful stop or timeout
+	select {
+	case <-done:
+		log.Printf(" [INFO] GrpcServerStop stopped\n")
+	case <-ctx.Done():
+		log.Printf(" [INFO] GrpcServerStop timeout\n")
+	}
 }
 
 // RegisterService registers a gRPC service with the server
