@@ -87,13 +87,24 @@ func (u *UserHandler) validateBasicAuth(ctx *gin.Context) error {
 	username := parts[0]
 	password := parts[1]
 
-	// TODO: Validate username and password (actual scenario)
+	// Validate username and password
 	if username == "" || password == "" {
 		return gowk.NewError("username and password cannot be empty")
 	}
-
-	// Here should call UserService to validate credentials
-	// For now, allow non-empty username/password (demo only)
+	params := &LoginParams{
+		Account: username,
+		Code:    password,
+	}
+	// Query user from database by phone number
+	var userService UserService
+	user, err := userService.Login(ctx, params)
+	if err != nil {
+		return gowk.NewError("user not found")
+	}
+	_, err = gowk.Login(ctx, user.ID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
