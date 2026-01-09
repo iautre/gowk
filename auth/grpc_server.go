@@ -42,6 +42,7 @@ func (s *AuthServer) OAuth2Token(ctx context.Context, req *authpb.OAuth2TokenReq
 			ClientID:     req.ClientId,
 			ClientSecret: req.ClientSecret,
 			Scope:        req.Scope,
+			CodeVerifier: req.CodeVerifier, // PKCE support
 		}
 
 		// Exchange code for token
@@ -91,12 +92,21 @@ func (s *AuthServer) OIDCUserInfo(ctx context.Context, req *authpb.OIDCUserInfoR
 	}
 
 	// TODO: Validate access token and get user info
-	// For now, return mock response
+	// For now, return mock response with complete profile
 	return &authpb.OIDCUserInfoResponse{
-		Sub:           "123456789",
-		Name:          "John Doe",
-		Email:         "john.doe@example.com",
-		EmailVerified: true,
+		Sub:                 "123456789",
+		Name:                "John Doe",
+		Email:               "john.doe@example.com",
+		EmailVerified:       true,
+		GivenName:           "John",
+		FamilyName:          "Doe",
+		Nickname:            "Johnny",
+		PreferredUsername:   "johndoe",
+		Picture:             "https://example.com/avatar.jpg",
+		PhoneNumber:         "+1234567890",
+		PhoneNumberVerified: true,
+		Locale:              "en-US",
+		UpdatedAt:           1640995200, // 2022-01-01 timestamp
 	}, nil
 }
 

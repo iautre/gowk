@@ -37,7 +37,7 @@ func NewAuthClient(addr, clientID, secret string) (*AuthClient, error) {
 }
 
 // OAuth2Token 交换访问令牌
-func (c *AuthClient) OAuth2Token(ctx context.Context, grantType, code, redirectURI, clientID, clientSecret, refreshToken, scope string) (*authpb.OAuth2TokenResponse, error) {
+func (c *AuthClient) OAuth2Token(ctx context.Context, grantType, code, redirectURI, clientID, clientSecret, refreshToken, scope, codeVerifier string) (*authpb.OAuth2TokenResponse, error) {
 	req := &authpb.OAuth2TokenRequest{
 		GrantType:    grantType,
 		Code:         code,
@@ -46,6 +46,7 @@ func (c *AuthClient) OAuth2Token(ctx context.Context, grantType, code, redirectU
 		ClientSecret: clientSecret,
 		RefreshToken: refreshToken,
 		Scope:        scope,
+		CodeVerifier: codeVerifier, // PKCE support
 	}
 
 	resp, err := c.authClient.OAuth2Token(ctx, req)
