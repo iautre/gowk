@@ -18,7 +18,7 @@ func Router(r *gin.RouterGroup, relativePath ...string) *gin.RouterGroup {
 
 	// User endpoints
 	ro.POST("/login", u.Login)
-	ro.GET("/auth/smscode", u.Smscode)
+	//ro.GET("/auth/smscode", u.Smscode)
 
 	// OAuth2 endpoints
 	ro.GET("/oauth2/auth", u.BasicAuthMiddleware, o.OAuth2Auth)

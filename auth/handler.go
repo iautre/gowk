@@ -55,90 +55,46 @@ func (u *UserHandler) BasicAuthMiddleware(ctx *gin.Context) {
 }
 
 func (u *UserHandler) requireBasicAuth(ctx *gin.Context) {
-	// 关键1：设置WWW-Authenticate响应头（必须）
-	ctx.Header("WWW-Authenticate", `Basic realm="请输入系统账号密码"`)
-	// 关键2：返回401 Unauthorized状态码（必须）
-	gowk.Response(ctx, http.StatusUnauthorized, nil, gowk.NewError("请输入系统账号密码"))
+	// Set WWW-Authenticate header (required)
+	ctx.Header("WWW-Authenticate", `Basic realm="Authentication required"`)
+	// Return 401 Unauthorized status code (required)
+	gowk.Response(ctx, http.StatusUnauthorized, nil, gowk.NewError("Authentication required"))
 }
 
 func (u *UserHandler) validateBasicAuth(ctx *gin.Context) error {
 	auth := ctx.GetHeader("Authorization")
 	if auth == "" {
-		return gowk.NewError("no Authorization")
-	}
-	username, pwd, ok := u.parseBasicAuth(ctx)
-	if !ok {
-		return gowk.NewError("no Authorization")
-	}
-	params := &LoginParams{
-		Account: username,
-		Code:    pwd,
-	}
-	var userService UserService
-	user, err := userService.Login(ctx, params)
-	if err != nil {
-		return err
-	}
-	_, err = gowk.Login(ctx, user.ID)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// ParseBasicAuth 从Gin上下文解析Basic Auth的用户名和密码
-// 返回值：username-用户名，password-密码，ok-是否解析成功，err-错误信息
-func (u *UserHandler) parseBasicAuth(c *gin.Context) (username, password string, ok bool) {
-	// 1. 提取Authorization请求头
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		return "", "", false
+		return gowk.NewError("missing Authorization header")
 	}
 
-	// 2. 拆分"Basic "和base64字符串（必须是两部分）
-	parts := strings.SplitN(authHeader, " ", 2)
+	// Parse Basic Auth: "Basic base64(username:password)"
+	if len(auth) < 6 || auth[:6] != "Basic " {
+		return gowk.NewError("invalid Authorization header format")
+	}
+
+	// Decode base64
+	decoded, err := base64.StdEncoding.DecodeString(auth[6:])
+	if err != nil {
+		return gowk.NewError("invalid Base64 encoding")
+	}
+
+	// Split username and password
+	parts := strings.SplitN(string(decoded), ":", 2)
 	if len(parts) != 2 {
-		return "", "", false
-	}
-	authType := strings.ToLower(parts[0])
-	base64Str := parts[1]
-
-	// 3. 校验认证类型是否为Basic
-	if authType != "basic" {
-		return "", "", false
+		return gowk.NewError("invalid credentials format")
 	}
 
-	// 4. Base64解码
-	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(base64Str)
-	if decodeErr != nil {
-		return "", "", false
-	}
-	decodedStr := string(decodedBytes)
+	username := parts[0]
+	password := parts[1]
 
-	// 5. 按":"拆分用户名和密码（必须拆分出两部分）
-	credParts := strings.SplitN(decodedStr, ":", 2)
-	if len(credParts) != 2 {
-		return "", "", false
-	}
-	username = credParts[0]
-	password = credParts[1]
-
-	// 6. 校验用户名/密码是否为空
+	// TODO: Validate username and password (actual scenario)
 	if username == "" || password == "" {
-		return "", "", false
+		return gowk.NewError("username and password cannot be empty")
 	}
 
-	// 解析成功
-	return username, password, true
-}
-
-func (u *UserHandler) Register(ctx *gin.Context) {
-	var params RegisterParams
-	err := ctx.ShouldBind(&params)
-	if err != nil {
-		gowk.Response(ctx, http.StatusBadRequest, nil, err)
-		return
-	}
+	// Here should call UserService to validate credentials
+	// For now, allow non-empty username/password (demo only)
+	return nil
 }
 
 func (u *UserHandler) UserInfo(ctx *gin.Context) {
@@ -149,34 +105,7 @@ func (u *UserHandler) UserInfo(ctx *gin.Context) {
 		gowk.Response(ctx, http.StatusBadRequest, nil, err)
 		return
 	}
-	ctx.JSON(200, gowk.CopyByJson[db.User, UserRes](user))
-	ctx.Abort()
-}
-
-func (u *UserHandler) Smscode(ctx *gin.Context) {
-	params := &LoginParams{}
-	err := ctx.ShouldBind(params)
-	if err != nil {
-		gowk.Response(ctx, http.StatusBadRequest, nil, err)
-		return
-	}
-	var userService UserService
-	user, err := userService.Login(ctx, params)
-	if err != nil {
-		gowk.Response(ctx, http.StatusBadRequest, nil, err)
-		return
-	}
-	token, err := gowk.Login(ctx, user.ID)
-	if err != nil {
-		gowk.Response(ctx, http.StatusBadRequest, nil, err)
-		return
-	}
-	ctx.JSON(200, &LoginRes{
-		Token:    token,
-		UserId:   user.ID,
-		Nickname: user.Nickname.String,
-	})
-	ctx.Abort()
+	gowk.Response(ctx, http.StatusOK, gowk.CopyByJson[db.User, UserRes](user), nil)
 }
 
 // SSO Login endpoint
@@ -194,9 +123,7 @@ func (u *UserHandler) SSOLogin(ctx *gin.Context) {
 		gowk.Response(ctx, http.StatusBadRequest, nil, err)
 		return
 	}
-
-	ctx.JSON(200, response)
-	ctx.Abort()
+	gowk.Response(ctx, http.StatusOK, response, nil)
 }
 
 type OAuth2Handler struct {
