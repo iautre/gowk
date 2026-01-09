@@ -38,7 +38,7 @@ func main() {
 	auth.Router(r.Group(gowk.AuthAPIPrefix()))
 
 	grpcServer := gowk.NewGrpcServer()
-	authServer := auth.NewAuthServer(context.Background())
+	authServer := auth.NewAuthServiceServer(context.Background())
 	authpb.RegisterAuthServiceServer(grpcServer.Server, authServer)
 
 	// Add health check endpoints

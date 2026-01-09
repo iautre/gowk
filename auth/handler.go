@@ -10,6 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iautre/gowk"
 	"github.com/iautre/gowk/auth/db"
+	authpb "github.com/iautre/gowk/auth/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type UserHandler struct {
@@ -296,4 +300,128 @@ func (o *OAuth2Handler) OIDCUserInfo(ctx *gin.Context) {
 func (o *OAuth2Handler) OIDCJwks(ctx *gin.Context) {
 	jwks := o.oidcService.GetJwks()
 	gowk.Response(ctx, http.StatusOK, jwks, nil)
+}
+
+// GrpcHandler 处理gRPC相关的请求
+type GrpcHandler struct {
+	oauth2Service *OAuth2Service
+	oidcService   *OIDCService
+}
+
+func NewGrpcHandler(ctx context.Context) *GrpcHandler {
+	return &GrpcHandler{
+		oauth2Service: NewOAuth2Service(ctx),
+		oidcService:   &OIDCService{},
+	}
+}
+
+// OAuth2Token handles OAuth2 token endpoint - gRPC version
+func (g *GrpcHandler) OAuth2Token(ctx context.Context, req *authpb.OAuth2TokenRequest) (*authpb.OAuth2TokenResponse, error) {
+	// Convert gRPC request to internal format
+	tokenReq := &OAuth2TokenRequest{
+		GrantType:    req.GrantType,
+		Code:         req.Code,
+		RedirectURI:  req.RedirectUri,
+		ClientID:     req.ClientId,
+		ClientSecret: req.ClientSecret,
+		RefreshToken: req.RefreshToken,
+		Scope:        req.Scope,
+		CodeVerifier: req.CodeVerifier,
+	}
+
+	// Use unified ExchangeToken method
+	response, err := g.oauth2Service.ExchangeToken(ctx, tokenReq)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "token exchange failed: %v", err)
+	}
+
+	// Convert to gRPC response format
+	return &authpb.OAuth2TokenResponse{
+		AccessToken:  response.AccessToken,
+		TokenType:    response.TokenType,
+		ExpiresIn:    response.ExpiresIn,
+		RefreshToken: response.RefreshToken,
+		Scope:        response.Scope,
+		IdToken:      response.IDToken,
+	}, nil
+}
+
+// OIDCUserInfo handles OIDC userinfo endpoint - gRPC version
+func (g *GrpcHandler) OIDCUserInfo(ctx context.Context, req *authpb.OIDCUserInfoRequest) (*authpb.OIDCUserInfoResponse, error) {
+	if req.AccessToken == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "access_token is required")
+	}
+
+	// Use OAuth2Service to validate access token
+	oauth2Token, err := g.oauth2Service.ValidateAccessToken(ctx, req.AccessToken)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "Invalid or expired access token: %v", err)
+	}
+
+	// Use existing OIDCService to get user info
+	userInfo, err := g.oidcService.GetUserInfo(ctx, oauth2Token.UserID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get user info: %v", err)
+	}
+
+	// Convert to gRPC response format
+	return &authpb.OIDCUserInfoResponse{
+		Sub:                 userInfo.Sub,
+		Name:                userInfo.Name,
+		Email:               userInfo.Email,
+		EmailVerified:       userInfo.EmailVerified,
+		GivenName:           userInfo.GivenName,
+		FamilyName:          userInfo.FamilyName,
+		MiddleName:          userInfo.MiddleName,
+		Nickname:            userInfo.Nickname,
+		PreferredUsername:   userInfo.PreferredUsername,
+		Picture:             userInfo.Picture,
+		PhoneNumber:         userInfo.PhoneNumber,
+		PhoneNumberVerified: userInfo.PhoneVerified,
+		Locale:              userInfo.Locale,
+		UpdatedAt:           userInfo.UpdatedAt,
+	}, nil
+}
+
+// OIDCDiscovery handles OIDC discovery endpoint - gRPC version
+func (g *GrpcHandler) OIDCDiscovery(ctx context.Context, req *emptypb.Empty) (*authpb.OIDCDiscoveryResponse, error) {
+	// Use existing OIDCService
+	discovery := g.oidcService.GetDiscoveryDocument()
+
+	// Convert to gRPC response format
+	return &authpb.OIDCDiscoveryResponse{
+		Issuer:                           discovery.Issuer,
+		AuthorizationEndpoint:            discovery.AuthorizationEndpoint,
+		TokenEndpoint:                    discovery.TokenEndpoint,
+		UserinfoEndpoint:                 discovery.UserInfoEndpoint,
+		JwksUri:                          discovery.JwksUri,
+		ScopesSupported:                  discovery.ScopesSupported,
+		ResponseTypesSupported:           discovery.ResponseTypesSupported,
+		GrantTypesSupported:              discovery.GrantTypesSupported,
+		SubjectTypesSupported:            discovery.SubjectTypesSupported,
+		IdTokenSigningAlgValuesSupported: discovery.IDTokenSigningAlgValuesSupported,
+	}, nil
+}
+
+// OIDCJwks handles OIDC JWKS endpoint - gRPC version
+func (g *GrpcHandler) OIDCJwks(ctx context.Context, req *emptypb.Empty) (*authpb.OIDCJwksResponse, error) {
+	// Use existing OIDCService
+	jwks := g.oidcService.GetJwks()
+
+	// Convert to gRPC response format
+	var keys []*authpb.OIDCJwk
+	for _, key := range jwks.Keys {
+		keys = append(keys, &authpb.OIDCJwk{
+			Kty: key.Kty,
+			Use: key.Use,
+			Kid: key.Kid,
+			N:   key.N,
+			E:   key.E,
+			Alg: key.Alg,
+		})
+	}
+
+	return &authpb.OIDCJwksResponse{
+		Keys: keys,
+	}, nil
 }
