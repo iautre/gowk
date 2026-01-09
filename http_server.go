@@ -2,6 +2,7 @@ package gowk
 
 import (
 	"context"
+	"errors"
 	"log"
 	"log/slog"
 	"net/http"
@@ -50,7 +51,7 @@ func (h *HttpServer) ServerRun() {
 		log.Printf(" [INFO] HttpServerRun:%s\n", httpServerAddr)
 		if err := h.Handler.ListenAndServe(); err != nil {
 			// Check if it's a normal shutdown (not a fatal error)
-			if err.Error() == "http: Server closed" {
+			if errors.Is(err, http.ErrServerClosed) {
 				log.Printf(" [INFO] HttpServerRun:%s err:%v\n", httpServerAddr, err)
 			} else {
 				log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", httpServerAddr, err)
@@ -63,7 +64,7 @@ func (h *HttpServer) ServerStop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := h.Handler.Shutdown(ctx); err != nil {
+	if err := h.Handler.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf(" [ERROR] HttpServerStop err:%v\n", err)
 	}
 	log.Printf(" [INFO] HttpServerStop stopped\n")
