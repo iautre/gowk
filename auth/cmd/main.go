@@ -2,16 +2,35 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iautre/gowk"
 	"github.com/iautre/gowk/auth"
-	"github.com/iautre/gowk/auth/proto"
+	authpb "github.com/iautre/gowk/auth/proto"
 )
 
+// getEnvOrDefault returns environment variable value or default
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func main() {
+	// Parse command line flags with environment variable defaults
+	httpPort := flag.String("http-port", getEnvOrDefault("HTTP_SERVER_ADDR", ":8087"), "HTTP server port")
+	grpcPort := flag.String("grpc-port", getEnvOrDefault("GRPC_SERVER_ADDR", ":50051"), "gRPC server port")
 	flag.Parse()
+
+	// Set server addresses in gowk config
+	gowk.SetHTTPServerAddr(*httpPort)
+	gowk.SetGRPCServerAddr(*grpcPort)
+
+	fmt.Printf("Starting servers with HTTP port: %s, gRPC port: %s\n", *httpPort, *grpcPort)
 
 	// Create servers
 	r := gowk.New()
@@ -19,7 +38,7 @@ func main() {
 
 	grpcServer := gowk.NewGrpcServer()
 	authServer := auth.NewAuthServer()
-	proto.RegisterAuthServiceServer(grpcServer.Server, authServer)
+	authpb.RegisterAuthServiceServer(grpcServer.Server, authServer)
 
 	// Add health check endpoints
 	r.GET("/health", func(c *gin.Context) {

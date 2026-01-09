@@ -14,7 +14,7 @@ service AuthService {
   rpc OAuth2Auth(OAuth2AuthRequest) returns (OAuth2AuthResponse);
   rpc OAuth2Token(OAuth2TokenRequest) returns (OAuth2TokenResponse);
   rpc OIDCDiscovery(google.protobuf.Empty) returns (OIDCDiscoveryResponse);
-  rpc OIDCUserInfo(OIDCUserInfoRequest) returns (OIDCUserInfo);
+  rpc OIDCUserInfo(OIDCUserInfoRequest) returns (OIDCUserInfoResponse);
   rpc OIDCJwks(google.protobuf.Empty) returns (OIDCJwksResponse);
 }
 
@@ -93,6 +93,13 @@ message OIDCDiscoveryResponse {
 }
 
 message OIDCUserInfo {
+  string sub = 1;
+  string name = 2;
+  string email = 3;
+  bool email_verified = 4;
+}
+
+message OIDCUserInfoResponse {
   string sub = 1;
   string name = 2;
   string email = 3;

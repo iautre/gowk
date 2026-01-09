@@ -8,8 +8,6 @@ import (
 
 var (
 	baseURL          = getEnv("BASE_URL", "http://192.168.199.60:8087")
-	httpServerAddr   = getEnv("HTTP_SERVER_ADDR", ":8087")
-	grpcServerAddr   = getEnv("GRPC_SERVER_ADDR", ":50051")
 	databaseDsn      = getEnv("DATABASE_DSN", "")
 	redisAddr        = getEnv("REDIS_ADDR", "")
 	redisPassword    = getEnv("REDIS_PASSWORD", "")
@@ -19,6 +17,21 @@ var (
 	weappJsapiTicket = getEnv("WEAPP_JSAPI_TICKET", "0")
 	authAPIPrefix    = getEnv("AUTH_API_PREFIX", "")
 )
+
+// Dynamic server addresses (set from command line)
+var (
+	httpServerAddr = getEnv("HTTP_SERVER_ADDR", ":8087")
+	grpcServerAddr = getEnv("GRPC_SERVER_ADDR", ":50051")
+)
+
+// SetServerAddr allows setting server addresses from command line
+func SetHTTPServerAddr(addr string) {
+	httpServerAddr = addr
+}
+
+func SetGRPCServerAddr(addr string) {
+	grpcServerAddr = addr
+}
 
 // Helper funcs
 func getEnv(key, defaultValue string) string {

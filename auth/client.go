@@ -7,13 +7,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/iautre/gowk/auth/proto"
+	authpb "github.com/iautre/gowk/auth/proto"
 )
 
 // AuthClient OAuth2客户端
 type AuthClient struct {
 	conn       *grpc.ClientConn
-	authClient proto.AuthServiceClient
+	authClient authpb.AuthServiceClient
 	clientID   string
 	secret     string
 }
@@ -25,7 +25,7 @@ func NewAuthClient(addr, clientID, secret string) (*AuthClient, error) {
 		return nil, fmt.Errorf("failed to connect to auth service: %v", err)
 	}
 
-	client := proto.NewAuthServiceClient(conn)
+	client := authpb.NewAuthServiceClient(conn)
 
 	return &AuthClient{
 		conn:       conn,
@@ -36,8 +36,8 @@ func NewAuthClient(addr, clientID, secret string) (*AuthClient, error) {
 }
 
 // Login 用户登录
-func (c *AuthClient) Login(ctx context.Context, account, code string) (*proto.LoginResponse, error) {
-	req := &proto.LoginRequest{
+func (c *AuthClient) Login(ctx context.Context, account, code string) (*authpb.LoginResponse, error) {
+	req := &authpb.LoginRequest{
 		Account: account,
 		Code:    code,
 	}
@@ -51,8 +51,8 @@ func (c *AuthClient) Login(ctx context.Context, account, code string) (*proto.Lo
 }
 
 // Register 用户注册
-func (c *AuthClient) Register(ctx context.Context, phone, email, name string) (*proto.LoginResponse, error) {
-	req := &proto.RegisterRequest{
+func (c *AuthClient) Register(ctx context.Context, phone, email, name string) (*authpb.LoginResponse, error) {
+	req := &authpb.RegisterRequest{
 		Phone: phone,
 		Email: email,
 		Name:  name,
@@ -67,8 +67,8 @@ func (c *AuthClient) Register(ctx context.Context, phone, email, name string) (*
 }
 
 // UserInfo 获取用户信息
-func (c *AuthClient) UserInfo(ctx context.Context, userID int64) (*proto.UserInfoResponse, error) {
-	req := &proto.UserInfoRequest{
+func (c *AuthClient) UserInfo(ctx context.Context, userID int64) (*authpb.UserInfoResponse, error) {
+	req := &authpb.UserInfoRequest{
 		UserId: userID,
 	}
 
@@ -80,7 +80,7 @@ func (c *AuthClient) UserInfo(ctx context.Context, userID int64) (*proto.UserInf
 	return resp, nil
 }
 
-// TODO: Implement OAuth2 methods after proto file is updated with OAuth2 messages
+// TODO: Implement OAuth2 methods after authpb file is updated with OAuth2 messages
 // Authorize, GetToken, RefreshToken, GetUserInfo (OAuth2), RevokeToken
 
 // Close 关闭客户端连接

@@ -71,4 +71,12 @@ build:
 # Run combined server
 run: build
 	@echo "Starting combined HTTP/gRPC server..."
-	./bin/server -http-port=8087 -grpc-port=50051
+	./bin/server
+
+# Run with custom ports
+run-custom: build
+	@echo "Starting combined HTTP/gRPC server with custom ports..."
+	./bin/server -http-port=$(HTTP_PORT) -grpc-port=$(GRPC_PORT)
+
+# Example usage:
+# make run-custom HTTP_PORT=:9000 GRPC_PORT=:6000

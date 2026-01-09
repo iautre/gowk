@@ -12,3 +12,4 @@ conf.toml
 /auth/proto/auth.pb.go
 /auth/db/
 /auth/sql/insert_oauth2_client.sql
+/auth/bin/server
