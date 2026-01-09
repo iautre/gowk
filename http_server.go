@@ -5,8 +5,6 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"os"
-	"os/signal"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -35,39 +33,23 @@ func New() *gin.Engine {
 	return engine
 }
 
-func Run(r *gin.Engine) {
-	httpServer := &HttpServer{
-		Engine: r,
-	}
-	httpServer.Run()
-}
-
-func (h *HttpServer) Run() {
+func (h *HttpServer) ServerRun() {
 	if h.Engine == nil {
 		h.Engine = gin.Default()
 	}
 	if h.Handler == nil {
 		h.Handler = &http.Server{
-			Addr:    serverAddr,
+			Addr:    httpServerAddr,
 			Handler: h.Engine,
 			// ReadTimeout:    time.Duration(75) * time.Second,
 			// WriteTimeout:   time.Duration(75) * time.Second,
 			// MaxHeaderBytes: 1 << uint(20),
 		}
 	}
-
-	h.ServerRun()
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
-	h.ServerStop()
-}
-
-func (h *HttpServer) ServerRun() {
 	go func() {
-		log.Printf(" [INFO] HttpServerRun:%s\n", serverAddr)
+		log.Printf(" [INFO] HttpServerRun:%s\n", httpServerAddr)
 		if err := h.Handler.ListenAndServe(); err != nil {
-			log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", serverAddr, err)
+			log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", httpServerAddr, err)
 		}
 	}()
 }
@@ -75,7 +57,7 @@ func (h *HttpServer) ServerRun() {
 func (h *HttpServer) ServerStop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	closePostgres()
+
 	if err := h.Handler.Shutdown(ctx); err != nil {
 		log.Fatalf(" [ERROR] HttpServerStop err:%v\n", err)
 	}

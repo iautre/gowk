@@ -8,7 +8,8 @@ import (
 
 var (
 	baseURL          = getEnv("BASE_URL", "http://192.168.199.60:8087")
-	serverAddr       = getEnv("SERVER_ADDR", ":8087")
+	httpServerAddr   = getEnv("HTTP_SERVER_ADDR", ":8087")
+	grpcServerAddr   = getEnv("GRPC_SERVER_ADDR", ":50051")
 	databaseDsn      = getEnv("DATABASE_DSN", "")
 	redisAddr        = getEnv("REDIS_ADDR", "")
 	redisPassword    = getEnv("REDIS_PASSWORD", "")
