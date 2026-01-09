@@ -13,3 +13,4 @@ conf.toml
 /auth/db/
 /auth/sql/insert_oauth2_client.sql
 /auth/bin/server
+auth/main

@@ -4,60 +4,12 @@ package auth;
 
 option go_package = "github.com/iautre/gowk/auth/proto;auth";
 
-import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 
 service AuthService {
-  rpc Login(LoginRequest) returns (LoginResponse);
-  rpc Register(RegisterRequest) returns (LoginResponse);
-  rpc UserInfo(UserInfoRequest) returns (UserInfoResponse);
-  rpc OAuth2Auth(OAuth2AuthRequest) returns (OAuth2AuthResponse);
   rpc OAuth2Token(OAuth2TokenRequest) returns (OAuth2TokenResponse);
-  rpc OIDCDiscovery(google.protobuf.Empty) returns (OIDCDiscoveryResponse);
   rpc OIDCUserInfo(OIDCUserInfoRequest) returns (OIDCUserInfoResponse);
   rpc OIDCJwks(google.protobuf.Empty) returns (OIDCJwksResponse);
-}
-
-message LoginRequest {
-  string account = 1;
-  string code = 2;
-}
-
-message RegisterRequest {
-  string phone = 1;
-  string email = 2;
-  string name = 3;
-}
-
-message LoginResponse {
-  string token = 1;
-  int64 user_id = 2;
-  string nickname = 3;
-}
-
-message UserInfoRequest {
-  int64 user_id = 1;
-}
-
-message UserInfoResponse {
-  int64 id = 1;
-  string phone = 2;
-  string email = 3;
-  string nickname = 4;
-  string group = 5;
-}
-
-message OAuth2AuthRequest {
-  string response_type = 1;
-  string client_id = 2;
-  string redirect_uri = 3;
-  string scope = 4;
-  string state = 5;
-  string nonce = 6;
-}
-
-message OAuth2AuthResponse {
-  string redirect_url = 1;
 }
 
 message OAuth2TokenRequest {
@@ -79,24 +31,8 @@ message OAuth2TokenResponse {
   string id_token = 6;
 }
 
-message OIDCDiscoveryResponse {
-  string issuer = 1;
-  string authorization_endpoint = 2;
-  string token_endpoint = 3;
-  string userinfo_endpoint = 4;
-  string jwks_uri = 5;
-  repeated string scopes_supported = 6;
-  repeated string response_types_supported = 7;
-  repeated string grant_types_supported = 8;
-  repeated string subject_types_supported = 9;
-  repeated string id_token_signing_alg_values_supported = 10;
-}
-
-message OIDCUserInfo {
-  string sub = 1;
-  string name = 2;
-  string email = 3;
-  bool email_verified = 4;
+message OIDCUserInfoRequest {
+  string access_token = 1;
 }
 
 message OIDCUserInfoResponse {
@@ -104,10 +40,6 @@ message OIDCUserInfoResponse {
   string name = 2;
   string email = 3;
   bool email_verified = 4;
-}
-
-message OIDCUserInfoRequest {
-  string access_token = 1;
 }
 
 message OIDCJwksResponse {
