@@ -1,6 +1,8 @@
 package gowk
 
 import (
+	"crypto/rand"
+	"math/big"
 	"strings"
 	"time"
 
@@ -27,4 +29,19 @@ func UUID() string {
 }
 func NewAuid() uint {
 	return uint(SonyflakeID())
+}
+
+// Helper functions
+func GenerateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			// Fallback to less secure method if crypto/rand fails
+			n = big.NewInt(int64(len(charset)))
+		}
+		b[i] = charset[n.Int64()]
+	}
+	return string(b)
 }

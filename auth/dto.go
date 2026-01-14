@@ -1,48 +1,76 @@
 package auth
 
+import "github.com/iautre/gowk/auth/db"
+
+// User registration parameters
 type RegisterParams struct {
-	Phone string `json:"phone"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
-}
-type LoginParams struct {
-	Account string `json:"account"`
-	Code    string `json:"code"`
+	Phone  string `json:"phone" binding:"required,min=11,max=11"`
+	Email  string `json:"email" binding:"required,email"`
+	Name   string `json:"name" binding:"required,min=2,max=50"`
+	Avatar string `json:"avatar,omitempty"`
 }
 
-type LoginRes struct {
-	Token    string `json:"token"`
-	UserId   int64  `json:"userId"`
-	Nickname string `json:"nickname"`
+// Login parameters
+type LoginParams struct {
+	Account string `json:"account" binding:"required"`    // Phone or Email
+	Code    string `json:"code" binding:"required,len=6"` // OTP code
 }
+
+// Login response
+type LoginRes struct {
+	Token      string `json:"token"`
+	UserId     int64  `json:"userId"`
+	Nickname   string `json:"nickname"`
+	Avatar     string `json:"avatar,omitempty"`
+	IsVerified bool   `json:"isVerified"`
+}
+
+// User response (excludes sensitive data)
 type UserRes struct {
-	Id       int64  `json:"id"`
-	Phone    string `json:"phone"`
-	Email    string `json:"email"`
-	Nickname string `json:"nickname"`
-	Group    string `json:"group"`
+	Id          int64  `json:"id"`
+	Phone       string `json:"phone"`
+	Email       string `json:"email"`
+	Nickname    string `json:"nickname"`
+	Group       string `json:"group"`
+	Avatar      string `json:"avatar,omitempty"`
+	IsVerified  bool   `json:"isVerified"`
+	Enabled     bool   `json:"enabled"`
+	LastLoginAt string `json:"lastLoginAt,omitempty"`
+	Created     string `json:"created"`
+}
+
+// User status update parameters
+type UserStatusUpdateParams struct {
+	UserId int64 `json:"userId" binding:"required"`
+	Status int   `json:"status" binding:"required,oneof=0 1 2"` // disabled, active, suspended
+}
+
+// Password reset parameters
+type PasswordResetParams struct {
+	Account string `json:"account" binding:"required"`
+	NewCode string `json:"newCode" binding:"required,len=6"`
 }
 
 // OAuth2 DTOs
 type OAuth2AuthRequest struct {
-	ResponseType string `json:"response_type" form:"response_type"`
-	ClientID     string `json:"client_id" form:"client_id"`
-	RedirectURI  string `json:"redirect_uri" form:"redirect_uri"`
-	Scope        string `json:"scope" form:"scope"`
-	State        string `json:"state" form:"state"`
-	Nonce        string `json:"nonce" form:"nonce"`
+	ResponseType string `json:"response_type" form:"response_type" binding:"required,oneof=code"`
+	ClientID     string `json:"client_id" form:"client_id" binding:"required,min=1,max=100"`
+	RedirectURI  string `json:"redirect_uri" form:"redirect_uri" binding:"required,url"`
+	Scope        string `json:"scope" form:"scope" binding:"required,min=1,max=500"`
+	State        string `json:"state" form:"state" binding:"omitempty,max=100"`
+	Nonce        string `json:"nonce" form:"nonce" binding:"omitempty,max=100"`
 }
 
 type OAuth2TokenRequest struct {
-	GrantType    string `json:"grant_type" form:"grant_type"`
-	Code         string `json:"code" form:"code"`
-	RedirectURI  string `json:"redirect_uri" form:"redirect_uri"`
-	ClientID     string `json:"client_id" form:"client_id"`
-	ClientSecret string `json:"client_secret" form:"client_secret"`
-	RefreshToken string `json:"refresh_token" form:"refresh_token"`
-	Scope        string `json:"scope" form:"scope"`
+	GrantType    string `json:"grant_type" form:"grant_type" binding:"required,oneof=authorization_code client_credentials refresh_token"`
+	Code         string `json:"code" form:"code" binding:"omitempty,min=10,max=100"`
+	RedirectURI  string `json:"redirect_uri" form:"redirect_uri" binding:"omitempty,url"`
+	ClientID     string `json:"client_id" form:"client_id" binding:"omitempty,min=1,max=100"`
+	ClientSecret string `json:"client_secret" form:"client_secret" binding:"omitempty,min=16,max=128"`
+	RefreshToken string `json:"refresh_token" form:"refresh_token" binding:"omitempty,min=10,max=500"`
+	Scope        string `json:"scope" form:"scope" binding:"omitempty,min=1,max=500"`
 	// OIDC specific fields
-	CodeVerifier string `json:"code_verifier" form:"code_verifier"` // PKCE
+	CodeVerifier string `json:"code_verifier" form:"code_verifier" binding:"omitempty,min=43,max=128"` // PKCE
 }
 
 type OAuth2TokenResponse struct {
@@ -55,20 +83,62 @@ type OAuth2TokenResponse struct {
 	IDToken string `json:"id_token,omitempty"` // OpenID Connect ID Token
 }
 
-type OAuth2Client struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Secret       string `json:"secret"`
-	RedirectURIs string `json:"redirect_uris"`
-	Scopes       string `json:"scopes"`
+type OAuth2ClientResponse struct {
+	ID              string `json:"id"`
+	Name            string `json:"name"`
+	Secret          string `json:"secret"`
+	RedirectURIs    string `json:"redirect_uris"`
+	Scopes          string `json:"scopes"`
+	GrantTypes      string `json:"grant_types"`
+	AccessTokenTTL  int64  `json:"access_token_ttl"`
+	RefreshTokenTTL int64  `json:"refresh_token_ttl"`
+	Created         string `json:"created"`
+	Updated         string `json:"updated"`
+	Enabled         bool   `json:"enabled"` // true = active, false = disabled
+}
+
+func BuildOAuth2ClientResponse(client db.Oauth2Client) *OAuth2ClientResponse {
+	return &OAuth2ClientResponse{
+		ID:              client.ID,
+		Name:            client.Name,
+		Secret:          client.Secret,
+		RedirectURIs:    client.RedirectUris,
+		Scopes:          client.Scopes,
+		GrantTypes:      client.GrantTypes,
+		AccessTokenTTL:  client.AccessTokenTtl,
+		RefreshTokenTTL: client.RefreshTokenTtl,
+		Enabled:         client.Enabled,
+	}
+}
+
+// OAuth Client Management DTOs
+type OAuth2ClientCreateParams struct {
+	Name            string   `json:"name" binding:"required,min=2,max=100"`
+	RedirectURIs    []string `json:"redirect_uris" binding:"required,min=1"`
+	Scopes          []string `json:"scopes" binding:"required,min=1"`
+	GrantTypes      []string `json:"grant_types" binding:"required,min=1"`
+	AccessTokenTTL  int64    `json:"access_token_ttl" binding:"min=300"`   // min 5 minutes
+	RefreshTokenTTL int64    `json:"refresh_token_ttl" binding:"min=3600"` // min 1 hour
+}
+
+type OAuth2ClientUpdateParams struct {
+	ID              string   `json:"id" binding:"required"`
+	Name            string   `json:"name,omitempty" binding:"omitempty,min=2,max=100"`
+	Secret          string   `json:"secret,omitempty" binding:"omitempty,min=16,max=128"`
+	RedirectURIs    []string `json:"redirect_uris,omitempty" binding:"omitempty,min=1"`
+	Scopes          []string `json:"scopes,omitempty" binding:"omitempty,min=1"`
+	Enable          bool     `json:"enable,omitempty"`
+	GrantTypes      []string `json:"grant_types,omitempty" binding:"omitempty,min=1"`
+	AccessTokenTTL  int64    `json:"access_token_ttl,omitempty" binding:"omitempty,min=300"`
+	RefreshTokenTTL int64    `json:"refresh_token_ttl,omitempty" binding:"omitempty,min=3600"`
 }
 
 // SSO DTOs
 type SSOLoginRequest struct {
-	Provider    string `json:"provider" form:"provider"`
-	Token       string `json:"token" form:"token"`
-	RedirectURI string `json:"redirect_uri" form:"redirect_uri"`
-	State       string `json:"state" form:"state"`
+	Provider    string `json:"provider" form:"provider" binding:"required,oneof=google github wechat"`
+	Token       string `json:"token" form:"token" binding:"required,min=10,max=1000"`
+	RedirectURI string `json:"redirect_uri" form:"redirect_uri" binding:"required,url"`
+	State       string `json:"state" form:"state" binding:"omitempty,max=100"`
 }
 
 type SSOLoginResponse struct {

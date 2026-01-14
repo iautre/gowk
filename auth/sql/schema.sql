@@ -1,145 +1,122 @@
-create table public."user"
+-- Database Schema for SQLC
+-- This file contains the complete database structure for SQLC code generation
+-- Includes tables, indexes, and constraints
+
+-- Create extensions if needed
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- User Table
+CREATE TABLE IF NOT EXISTS public."user"
 (
     id       bigserial
-        constraint user_pk
-            primary key,
+        CONSTRAINT user_pk
+            PRIMARY KEY,
     phone    varchar,
     email    varchar,
     nickname varchar,
     "group"  varchar,
-    status   integer,
-    created  timestamp with time zone,
-    updated  timestamp with time zone,
+    enabled  boolean NOT NULL DEFAULT true, -- true = active, false = disabled
+    created  timestamp with time zone NOT NULL DEFAULT now(),
+    updated  timestamp with time zone NOT NULL DEFAULT now(),
     aid      varchar,
-    secret   varchar
+    secret   varchar,
+    last_login_at timestamp with time zone, -- Last successful login timestamp
+    login_count integer DEFAULT 0 CONSTRAINT chk_user_login_count CHECK (login_count >= 0), -- Number of login attempts
+    avatar    varchar, -- User avatar URL
+    is_verified boolean DEFAULT false CONSTRAINT chk_user_is_verified CHECK (is_verified IN (true, false)) -- Phone/email verification status
 );
-
-alter table public."user"
-    owner to postgres;
-
-create table public.app
-(
-    id          bigint default nextval('app_id_seq'::regclass) not null
-        constraint app_pk
-            primary key,
-    name        varchar,
-    url         varchar,
-    type        varchar,
-    auth_ignore boolean,
-    auth_key    varchar,
-    auth_secret varchar,
-    key         varchar
-);
-
-alter table public.app
-    owner to postgres;
-
-create table public.app_data
-(
-    id     bigint,
-    module varchar,
-    data   jsonb,
-    app_id integer
-);
-
-alter table public.app_data
-    owner to postgres;
 
 -- OAuth2 Clients Table
-create table public.oauth2_client
+CREATE TABLE IF NOT EXISTS public.oauth2_client
 (
-    id varchar primary key,
-    name varchar not null,
-    secret varchar not null,
-    redirect_uris text not null, -- JSON array of redirect URIs
-    scopes text not null, -- JSON array of allowed scopes
-    grant_types text not null, -- JSON array of allowed grant types
-    access_token_ttl bigint not null default 3600, -- Access token TTL in seconds (default: 1 hour)
-    refresh_token_ttl bigint not null default 2592000, -- Refresh token TTL in seconds (default: 30 days)
-    created timestamp with time zone not null default now(),
-    updated timestamp with time zone not null default now()
+    id varchar PRIMARY KEY,
+    name varchar NOT NULL,
+    secret varchar NOT NULL,
+    redirect_uris text NOT NULL, -- JSON array of redirect URIs
+    scopes text NOT NULL, -- JSON array of allowed scopes
+    grant_types text NOT NULL, -- JSON array of allowed grant types
+    access_token_ttl bigint NOT NULL DEFAULT 3600, -- Access token TTL in seconds (default: 1 hour)
+    refresh_token_ttl bigint NOT NULL DEFAULT 2592000, -- Refresh token TTL in seconds (default: 30 days)
+    enabled boolean NOT NULL DEFAULT true, -- true = active, false = disabled
+    created timestamp with time zone NOT NULL DEFAULT now(),
+    updated timestamp with time zone NOT NULL DEFAULT now()
 );
 
-alter table public.oauth2_client
-    owner to postgres;
-
 -- OAuth2 Authorization Codes Table
-create table public.oauth2_authorization_code
+CREATE TABLE IF NOT EXISTS public.oauth2_authorization_code
 (
-    code varchar primary key,
-    client_id varchar not null,
-    user_id bigint not null,
+    code varchar PRIMARY KEY,
+    client_id varchar NOT NULL,
+    user_id bigint NOT NULL,
     redirect_uri text,
     scope text,
     state text,
     nonce text,
-    expires timestamp with time zone not null,
-    created timestamp with time zone not null default now(),
-    constraint oauth2_authorization_code_client_id_fkey
-        foreign key (client_id) references public.oauth2_client (id) on delete cascade
+    expires timestamp with time zone NOT NULL,
+    created timestamp with time zone NOT NULL DEFAULT now(),
+    CONSTRAINT oauth2_authorization_code_client_id_fkey
+        FOREIGN KEY (client_id) REFERENCES public.oauth2_client (id) ON DELETE CASCADE
 );
-
-alter table public.oauth2_authorization_code
-    owner to postgres;
 
 -- OAuth2 Access Tokens Table
-create table public.oauth2_token
+CREATE TABLE IF NOT EXISTS public.oauth2_token
 (
-    access_token varchar primary key,
-    token_type text not null default 'Bearer',
-    client_id varchar not null,
-    user_id bigint not null,
+    access_token varchar PRIMARY KEY,
+    token_type text NOT NULL DEFAULT 'Bearer',
+    client_id varchar NOT NULL,
+    user_id bigint NOT NULL,
     scope text,
-    expires timestamp with time zone not null,
-    created timestamp with time zone not null default now(),
-    constraint oauth2_token_client_id_fkey
-        foreign key (client_id) references public.oauth2_client (id) on delete cascade
+    expires timestamp with time zone NOT NULL,
+    created timestamp with time zone NOT NULL DEFAULT now(),
+    CONSTRAINT oauth2_token_client_id_fkey
+        FOREIGN KEY (client_id) REFERENCES public.oauth2_client (id) ON DELETE CASCADE
 );
-
-alter table public.oauth2_token
-    owner to postgres;
 
 -- OAuth2 Refresh Tokens Table
-create table public.oauth2_refresh_token
+CREATE TABLE IF NOT EXISTS public.oauth2_refresh_token
 (
-    refresh_token varchar primary key,
-    client_id varchar not null,
-    user_id bigint not null,
+    refresh_token varchar PRIMARY KEY,
+    client_id varchar NOT NULL,
+    user_id bigint NOT NULL,
     scope text,
-    expires timestamp with time zone not null,
-    created timestamp with time zone not null default now(),
-    constraint oauth2_refresh_token_client_id_fkey
-        foreign key (client_id) references public.oauth2_client (id) on delete cascade
+    expires timestamp with time zone NOT NULL,
+    created timestamp with time zone NOT NULL DEFAULT now(),
+    CONSTRAINT oauth2_refresh_token_client_id_fkey
+        FOREIGN KEY (client_id) REFERENCES public.oauth2_client (id) ON DELETE CASCADE
 );
-
-alter table public.oauth2_refresh_token
-    owner to postgres;
-
--- Indexes for better performance
-create index if not exists idx_oauth2_authorization_code_client_id on public.oauth2_authorization_code (client_id);
-create index if not exists idx_oauth2_authorization_code_expires on public.oauth2_authorization_code (expires);
-create index if not exists idx_oauth2_token_client_id on public.oauth2_token (client_id);
-create index if not exists idx_oauth2_token_expires on public.oauth2_token (expires);
-create index if not exists idx_oauth2_refresh_token_client_id on public.oauth2_refresh_token (client_id);
-create index if not exists idx_oauth2_refresh_token_expires on public.oauth2_refresh_token (expires);
 
 -- OIDC JWK Keys Table
-create table public.oidc_jwk
+CREATE TABLE IF NOT EXISTS public.oidc_jwk
 (
-    id varchar primary key,
-    kid varchar not null unique, -- Key ID
-    kty varchar not null, -- Key Type (e.g., "RSA")
-    use varchar not null, -- Public Key Use (e.g., "sig")
-    alg varchar not null, -- Algorithm (e.g., "RS256")
-    n text not null, -- Modulus for RSA keys
-    e text not null, -- Exponent for RSA keys
-    created timestamp with time zone not null default now(),
-    updated timestamp with time zone not null default now()
+    id varchar PRIMARY KEY,
+    kid varchar NOT NULL UNIQUE, -- Key ID
+    kty varchar NOT NULL, -- Key Type (e.g., "RSA")
+    use varchar NOT NULL, -- Public Key Use (e.g., "sig")
+    alg varchar NOT NULL, -- Algorithm (e.g., "RS256")
+    n text NOT NULL, -- Modulus for RSA keys
+    e text NOT NULL, -- Exponent for RSA keys
+    created timestamp with time zone NOT NULL DEFAULT now(),
+    updated timestamp with time zone NOT NULL DEFAULT now()
 );
 
-alter table public.oidc_jwk
-    owner to postgres;
+-- Indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_user_status ON public."user" (status);
+CREATE INDEX IF NOT EXISTS idx_user_phone ON public."user" (phone);
+CREATE INDEX IF NOT EXISTS idx_user_email ON public."user" (email) WHERE email IS NOT NULL;
 
--- Index for JWK performance
-create index if not exists idx_oidc_jwk_kid on public.oidc_jwk (kid);
+CREATE INDEX IF NOT EXISTS idx_oauth2_authorization_code_client_id ON public.oauth2_authorization_code (client_id);
+CREATE INDEX IF NOT EXISTS idx_oauth2_authorization_code_expires ON public.oauth2_authorization_code (expires);
+CREATE INDEX IF NOT EXISTS idx_oauth2_token_client_id ON public.oauth2_token (client_id);
+CREATE INDEX IF NOT EXISTS idx_oauth2_token_expires ON public.oauth2_token (expires);
+CREATE INDEX IF NOT EXISTS idx_oauth2_refresh_token_client_id ON public.oauth2_refresh_token (client_id);
+CREATE INDEX IF NOT EXISTS idx_oauth2_refresh_token_expires ON public.oauth2_refresh_token (expires);
 
+CREATE INDEX IF NOT EXISTS idx_oidc_jwk_kid ON public.oidc_jwk (kid);
+
+-- Set table permissions
+ALTER TABLE public."user" OWNER TO postgres;
+ALTER TABLE public.oauth2_client OWNER TO postgres;
+ALTER TABLE public.oauth2_authorization_code OWNER TO postgres;
+ALTER TABLE public.oauth2_token OWNER TO postgres;
+ALTER TABLE public.oauth2_refresh_token OWNER TO postgres;
+ALTER TABLE public.oidc_jwk OWNER TO postgres;

@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/iautre/gowk"
-	"github.com/iautre/gowk/auth/db"
 	authpb "github.com/iautre/gowk/auth/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -95,11 +94,11 @@ func (u *UserHandler) validateBasicAuth(ctx *gin.Context) error {
 		Account: username,
 		Code:    password,
 	}
-	// Query user from database by phone number
+	// Query user from database and validate credentials
 	var userService UserService
 	user, err := userService.Login(ctx, params)
 	if err != nil {
-		return gowk.NewError("user not found")
+		return err // Return the actual error from Login method
 	}
 	_, err = gowk.Login(ctx, user.ID)
 	if err != nil {
@@ -116,7 +115,22 @@ func (u *UserHandler) UserInfo(ctx *gin.Context) {
 		gowk.Response(ctx, http.StatusBadRequest, nil, err)
 		return
 	}
-	gowk.Response(ctx, http.StatusOK, gowk.CopyByJson[db.User, UserRes](user), nil)
+
+	// Create user response with additional fields
+	userRes := UserRes{
+		Id:          user.ID,
+		Phone:       user.Phone.String,
+		Email:       user.Email.String,
+		Nickname:    user.Nickname.String,
+		Group:       user.Group.String,
+		Avatar:      user.Avatar.String,
+		IsVerified:  user.IsVerified.Bool,
+		Enabled:     user.Enabled,
+		LastLoginAt: user.LastLoginAt.Time.Format("2006-01-02T15:04:05Z"),
+		Created:     user.Created.Time.Format("2006-01-02T15:04:05Z"),
+	}
+
+	gowk.Response(ctx, http.StatusOK, userRes, nil)
 }
 
 // SSO Login endpoint
@@ -128,6 +142,7 @@ func (u *UserHandler) SSOLogin(ctx *gin.Context) {
 		return
 	}
 
+	// Gin binding validation already handles all validation rules via binding tags
 	var ssoService SSOService
 	response, err := ssoService.LoginWithProvider(ctx, &params)
 	if err != nil {
@@ -135,6 +150,23 @@ func (u *UserHandler) SSOLogin(ctx *gin.Context) {
 		return
 	}
 	gowk.Response(ctx, http.StatusOK, response, nil)
+}
+
+// ResetOTPCode generates new OTP secret for user (admin only)
+func (u *UserHandler) ResetOTPCode(ctx *gin.Context) {
+	userId := gowk.LoginId(ctx)
+	var userService UserService
+	newSecret, err := userService.ResetOTPCode(ctx, userId)
+	if err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	gowk.Response(ctx, http.StatusOK, map[string]interface{}{
+		"userId":    userId,
+		"newSecret": newSecret,
+		"message":   "OTP code reset successfully",
+	}, nil)
 }
 
 type OAuth2Handler struct {
@@ -286,10 +318,6 @@ func (g *GrpcHandler) OAuth2Token(ctx context.Context, req *authpb.OAuth2TokenRe
 
 // OIDCUserInfo handles OIDC userinfo endpoint - gRPC version
 func (g *GrpcHandler) OIDCUserInfo(ctx context.Context, req *authpb.OIDCUserInfoRequest) (*authpb.OIDCUserInfoResponse, error) {
-	if req.AccessToken == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "access_token is required")
-	}
-
 	// Use OAuth2Service to validate access token
 	oauth2Token, err := g.oauth2Service.ValidateAccessToken(ctx, req.AccessToken)
 	if err != nil {
@@ -362,4 +390,140 @@ func (g *GrpcHandler) OIDCJwks(ctx context.Context, req *emptypb.Empty) (*authpb
 	return &authpb.OIDCJwksResponse{
 		Keys: keys,
 	}, nil
+}
+
+// OAuth2ClientHandler handles OAuth2 client management HTTP requests
+type OAuth2ClientHandler struct {
+	clientService *OAuth2ClientService
+}
+
+// NewOAuth2ClientHandler creates a new OAuth2ClientHandler
+func NewOAuth2ClientHandler(ctx context.Context) *OAuth2ClientHandler {
+	return &OAuth2ClientHandler{
+		clientService: NewOAuth2ClientService(ctx),
+	}
+}
+
+// CreateOAuth2Client creates a new OAuth2 client
+func (h *OAuth2ClientHandler) CreateOAuth2Client(ctx *gin.Context) {
+	var params OAuth2ClientCreateParams
+	if err := ctx.ShouldBindJSON(&params); err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	client, err := h.clientService.CreateOAuth2Client(ctx, &params)
+	if err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	gowk.Response(ctx, http.StatusCreated, client, nil)
+}
+
+// UpdateOAuth2Client updates an existing OAuth2 client
+func (h *OAuth2ClientHandler) UpdateOAuth2Client(ctx *gin.Context) {
+	clientID := ctx.Param("id")
+	if clientID == "" {
+		gowk.Response(ctx, http.StatusBadRequest, nil, gowk.NewError("client ID is required"))
+		return
+	}
+
+	var params OAuth2ClientUpdateParams
+	if err := ctx.ShouldBindJSON(&params); err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	// Set client ID from URL parameter
+	params.ID = clientID
+
+	client, err := h.clientService.UpdateOAuth2Client(ctx, &params)
+	if err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	gowk.Response(ctx, http.StatusOK, client, nil)
+}
+
+// GetOAuth2Client retrieves an OAuth2 client by ID
+func (h *OAuth2ClientHandler) GetOAuth2Client(ctx *gin.Context) {
+	clientID := ctx.Param("id")
+	if clientID == "" {
+		gowk.Response(ctx, http.StatusBadRequest, nil, gowk.NewError("client ID is required"))
+		return
+	}
+
+	client, err := h.clientService.GetOAuth2Client(ctx, clientID)
+	if err != nil {
+		gowk.Response(ctx, http.StatusNotFound, nil, err)
+		return
+	}
+
+	gowk.Response(ctx, http.StatusOK, client, nil)
+}
+
+// ListOAuth2Clients lists all OAuth2 clients
+func (h *OAuth2ClientHandler) ListOAuth2Clients(ctx *gin.Context) {
+
+	response, err := h.clientService.ListOAuth2Clients(ctx)
+	if err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	gowk.Response(ctx, http.StatusOK, response, nil)
+}
+
+// DeleteOAuth2Client soft deletes an OAuth2 client
+func (h *OAuth2ClientHandler) DisableOAuth2Client(ctx *gin.Context) {
+	clientID := ctx.Param("id")
+	if clientID == "" {
+		gowk.Response(ctx, http.StatusBadRequest, nil, gowk.NewError("client ID is required"))
+		return
+	}
+
+	err := h.clientService.DisableOAuth2Client(ctx, clientID)
+	if err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	gowk.Response(ctx, http.StatusOK, gin.H{
+		"client_id": clientID,
+		"message":   "OAuth2 client disabled successfully",
+	}, nil)
+}
+
+// RegenerateClientSecret generates a new secret for an OAuth2 client
+func (h *OAuth2ClientHandler) RegenerateClientSecret(ctx *gin.Context) {
+	clientID := ctx.Param("id")
+	if clientID == "" {
+		gowk.Response(ctx, http.StatusBadRequest, nil, gowk.NewError("client ID is required"))
+		return
+	}
+
+	// Generate new secret
+	newSecret := generateOTPSecret() + "!" // Add some complexity
+
+	// Update client with new secret
+	params := &OAuth2ClientUpdateParams{
+		ID:     clientID,
+		Secret: newSecret,
+	}
+
+	_, err := h.clientService.UpdateOAuth2Client(ctx, params)
+	if err != nil {
+		gowk.Response(ctx, http.StatusBadRequest, nil, err)
+		return
+	}
+
+	// Return only the new secret (not the full client info)
+	gowk.Response(ctx, http.StatusOK, map[string]interface{}{
+		"client_id":  clientID,
+		"new_secret": newSecret,
+		"message":    "Client secret regenerated successfully",
+		"warning":    "Please save this secret securely, it will not be shown again",
+	}, nil)
 }

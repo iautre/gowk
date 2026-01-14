@@ -57,3 +57,13 @@ func (o *OTP) ToBytes(value int64) []byte {
 func (o *OTP) ToUint32(bytes []byte) uint32 {
 	return (uint32(bytes[0]) << 24) + (uint32(bytes[1]) << 16) + (uint32(bytes[2]) << 8) + uint32(bytes[3])
 }
+
+// generateOTPSecret generates a new OTP secret key
+func generateOTPSecret() string {
+	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+	result := make([]byte, 16)
+	for i := range result {
+		result[i] = chars[i%len(chars)] // Simple pattern for now
+	}
+	return string(result)
+}

@@ -1,6 +1,7 @@
 package gowk
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,6 +13,9 @@ func Response(ctx *gin.Context, statusCode int, data any, err error) {
 	if http.StatusOK == statusCode {
 		ctx.JSON(statusCode, data)
 	} else {
+		if err == nil {
+			err = errors.New(fmt.Sprintf("%d", statusCode))
+		}
 		ctx.JSON(statusCode, gin.H{
 			"error": err.Error(),
 			"code":  statusCode,

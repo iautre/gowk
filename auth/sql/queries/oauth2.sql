@@ -1,7 +1,21 @@
+-- name: CreateOAuth2Client :one
+INSERT INTO public.oauth2_client (id, name, secret, redirect_uris, scopes, grant_types, access_token_ttl, refresh_token_ttl, enabled, created, updated)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+RETURNING id, name, secret, redirect_uris, scopes, grant_types, access_token_ttl, refresh_token_ttl, enabled, created, updated;
+
+
 -- name: GetOAuth2Client :one
-SELECT id, name, secret, redirect_uris, scopes, grant_types, access_token_ttl, refresh_token_ttl, created, updated
+SELECT id, name, secret, redirect_uris, scopes, grant_types, access_token_ttl, refresh_token_ttl, enabled, created, updated
 FROM public.oauth2_client
 WHERE id = $1;
+
+-- name: DisableOAuth2Client :exec
+UPDATE public.oauth2_client set enable = false
+WHERE id = $1;
+
+-- name: ListOAuth2Client :many
+SELECT id, name, secret, redirect_uris, scopes, grant_types, access_token_ttl, refresh_token_ttl, enabled, created, updated
+FROM public.oauth2_client;
 
 -- name: CreateOAuth2AuthorizationCode :one
 INSERT INTO public.oauth2_authorization_code (code, client_id, user_id, redirect_uri, scope, state, nonce, expires, created)
