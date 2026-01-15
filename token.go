@@ -33,33 +33,52 @@ func CheckLoginMiddleware() gin.HandlerFunc {
 }
 
 func CheckLogin(ctx *gin.Context) {
+	var token *Token
+	var err error
 
+	// 1. 尝试从 Authorization header 获取 Bearer token
 	authHeader := ctx.GetHeader("Authorization")
-	if authHeader == "" {
-		ctx.Error(ERR_AUTH)
-		ctx.Abort()
-		return
+	if authHeader != "" {
+		// 检查是否为 Bearer token
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			tokenValue := strings.TrimPrefix(authHeader, "Bearer ")
+			if tokenValue != "" {
+				token, err = _defaultTokenHandler.LoadToken(ctx, tokenValue)
+				if err == nil && token != nil {
+					token.setContextToken(ctx, token)
+					ctx.Next()
+					return
+				}
+			}
+		}
+		// 检查是否为 BasicAuth
+		if strings.HasPrefix(authHeader, "Basic ") {
+			tokenValue := strings.TrimPrefix(authHeader, "Basic ")
+			if tokenValue != "" {
+				token, err = _defaultTokenHandler.LoadToken(ctx, tokenValue)
+				if err == nil && token != nil {
+					token.setContextToken(ctx, token)
+					ctx.Next()
+					return
+				}
+			}
+		}
 	}
 
-	tokenValue := strings.TrimPrefix(authHeader, "Bearer ")
-	if tokenValue == "" {
-		ctx.Error(ERR_AUTH)
-		ctx.Abort()
-		return
+	// 2. 尝试从 oidc_jwt cookie 获取 token
+	oidcJwt, cookieErr := ctx.Cookie("oidc_jwt")
+	if cookieErr == nil && oidcJwt != "" {
+		token, err = _defaultTokenHandler.LoadToken(ctx, oidcJwt)
+		if err == nil && token != nil {
+			token.setContextToken(ctx, token)
+			ctx.Next()
+			return
+		}
 	}
-	token, err := _defaultTokenHandler.LoadToken(ctx, tokenValue)
-	if err != nil {
-		ctx.Error(ERR_AUTH)
-		ctx.Abort()
-		return
-	}
-	if token == nil {
-		ctx.Error(ERR_AUTH)
-		ctx.Abort()
-		return
-	}
-	token.setContextToken(ctx, token)
-	ctx.Next()
+
+	// 所有认证方式都失败
+	ctx.Error(ERR_AUTH)
+	ctx.Abort()
 }
 
 func SetTokenHandler(handler TokenHandler) {
@@ -94,8 +113,8 @@ func loginWithOidcJwt(ctx *gin.Context, token *Token) {
 		86400,
 		"/",
 		BaseURL(),
-		true,  // Secure
-		false, // HttpOnly
+		true, // Secure
+		true, // HttpOnly
 	)
 }
 

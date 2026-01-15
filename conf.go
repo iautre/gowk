@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	baseURL          = getEnv("BASE_URL", "http://192.168.199.60:8087")
+	baseURL          = getEnv("BASE_URL", "http://localhost:3030")
 	databaseDsn      = getEnv("DATABASE_DSN", "")
 	redisAddr        = getEnv("REDIS_ADDR", "")
 	redisPassword    = getEnv("REDIS_PASSWORD", "")
@@ -20,8 +20,8 @@ var (
 
 // Dynamic server addresses (set from command line)
 var (
-	httpServerAddr = getEnv("HTTP_SERVER_ADDR", ":8087")
-	grpcServerAddr = getEnv("GRPC_SERVER_ADDR", ":50051")
+	httpServerAddr = getEnv("HTTP_SERVER_ADDR", ":3030")
+	grpcServerAddr = getEnv("GRPC_SERVER_ADDR", ":3031")
 )
 
 // SetServerAddr allows setting server addresses from command line
