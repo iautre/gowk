@@ -2,6 +2,7 @@ package gowk
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 const ContextTokenKey = "ATOKEN_CONTEXT_TOKEN_KEY"
 const ContextTokenValueKey = "ATOKEN_CONTEXT_TOKEN_VALUE_KEY"
 const ContextLoginIdKey = "ATOKEN_CONTEXT_LOGIN_ID_KEY"
+const ContextBasicAuthKey = "ATOKEN_BASIC_AUTH_KEY"
 
 var _defaultTokenHandler TokenHandler
 var _defaultTokenTimeout int64 = 30 * 24 * 60 * 60 //默认为秒/-1为永久有效
@@ -54,14 +56,12 @@ func CheckLogin(ctx *gin.Context) {
 		}
 		// 检查是否为 BasicAuth
 		if strings.HasPrefix(authHeader, "Basic ") {
-			tokenValue := strings.TrimPrefix(authHeader, "Basic ")
-			if tokenValue != "" {
-				token, err = _defaultTokenHandler.LoadToken(ctx, tokenValue)
-				if err == nil && token != nil {
-					token.setContextToken(ctx, token)
-					ctx.Next()
-					return
-				}
+			auth := strings.TrimPrefix(authHeader, "Basic ")
+			if auth != "" {
+				decoded, _ := base64.StdEncoding.DecodeString(auth)
+				ctx.Set(ContextBasicAuthKey, string(decoded))
+				ctx.Next()
+				return
 			}
 		}
 	}
