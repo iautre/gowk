@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -77,8 +78,10 @@ func CheckLogin(ctx *gin.Context) {
 	}
 
 	// 所有认证方式都失败
-	ctx.Error(ERR_AUTH)
-	ctx.Abort()
+	// Set WWW-Authenticate header (required)
+	ctx.Header("WWW-Authenticate", `Basic realm="Authentication required"`)
+	// Return 401 Unauthorized status code (required)
+	Response(ctx, http.StatusUnauthorized, nil, NewError("Authentication required"))
 }
 
 func SetTokenHandler(handler TokenHandler) {
