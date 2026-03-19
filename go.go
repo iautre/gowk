@@ -13,7 +13,9 @@ var goroutines = &goroutine{
 
 func Go(f func()) {
 	if goroutines.maxNum > 0 {
-		go goroutines.Exec(f)
+		go func() {
+			goroutines.Exec(f)
+		}()
 	} else {
 		f()
 	}

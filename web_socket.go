@@ -170,8 +170,8 @@ func (c *SocketClient) readPump() {
 		var message Message
 		err := c.conn.ReadJSON(&message)
 		if err != nil {
-			if errors.Is(err, &json.SyntaxError{}) {
-				// 判断错误是否为无效的 JSON
+			var jsonErr *json.SyntaxError
+			if errors.As(err, &jsonErr) {
 				c.send <- &Message{Receiver: c.name, err: NewError("参数错误")}
 				continue
 			}

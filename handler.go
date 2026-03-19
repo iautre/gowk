@@ -9,72 +9,73 @@ func NewHandler[T any]() *Handler[T] {
 	return &Handler[T]{}
 }
 
-func (c *Handler[T]) Page() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func (h *Handler[T]) Page() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
 		var page PageModel[T]
-		if err := c.ShouldBind(&page); err != nil {
-			c.Error(err)
+		if err := ctx.ShouldBind(&page); err != nil {
+			ctx.Error(err)
 			return
 		}
 		var t T
-		if err := c.ShouldBind(&t); err != nil {
-			c.Error(err)
+		if err := ctx.ShouldBind(&t); err != nil {
+			ctx.Error(err)
 			return
 		}
-		service := NewService[T](c)
+		service := NewService[T](ctx)
 		res, err := service.Page(&page, &t)
 		if err != nil {
-			c.Error(err)
+			ctx.Error(err)
 			return
 		}
-		Success(c, res)
+		Success(ctx, res)
 	}
 }
-func (c *Handler[T]) Save() gin.HandlerFunc {
-	return func(c *gin.Context) {
+
+func (h *Handler[T]) Save() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
 		var t T
-		if err := c.ShouldBind(&t); err != nil {
-			c.Error(err)
+		if err := ctx.ShouldBind(&t); err != nil {
+			ctx.Error(err)
 			return
 		}
-		service := NewService[T](c)
-		err := service.Save(&t)
-		if err != nil {
-			c.Error(err)
+		service := NewService[T](ctx)
+		if err := service.Save(&t); err != nil {
+			ctx.Error(err)
 			return
 		}
-		Success(c, t)
+		Success(ctx, t)
 	}
 }
-func (c *Handler[T]) Update() gin.HandlerFunc {
-	return func(c *gin.Context) {
+
+func (h *Handler[T]) Update() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
 		var t T
-		if err := c.ShouldBind(&t); err != nil {
-			c.Error(err)
+		if err := ctx.ShouldBind(&t); err != nil {
+			ctx.Error(err)
 			return
 		}
-		service := NewService[T](c)
-		err := service.Update(&t)
-		if err != nil {
-			c.Error(err)
+		service := NewService[T](ctx)
+		if err := service.Update(&t); err != nil {
+			ctx.Error(err)
 			return
 		}
-		Success(c, t)
+		Success(ctx, t)
 	}
 }
-func (c *Handler[T]) One() gin.HandlerFunc {
-	return func(c *gin.Context) {
+
+func (h *Handler[T]) One() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
 		var t T
-		if err := c.ShouldBind(&t); err != nil {
-			c.Error(err)
+		if err := ctx.ShouldBind(&t); err != nil {
+			ctx.Error(err)
 			return
 		}
-		service := NewService[T](c)
+		service := NewService[T](ctx)
 		res, err := service.One(&t)
 		if err != nil {
-			c.Error(err)
+			ctx.Error(err)
 			return
 		}
-		Success(c, res)
+		Success(ctx, res)
 	}
 }

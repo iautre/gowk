@@ -63,6 +63,6 @@ func (s *GrpcServer) ServerStop() {
 }
 
 // RegisterService registers a gRPC service with the server
-func (s *GrpcServer) RegisterService(desc *grpc.ServiceDesc, impl interface{}) {
+func (s *GrpcServer) RegisterService(desc *grpc.ServiceDesc, impl any) {
 	s.Server.RegisterService(desc, impl)
 }

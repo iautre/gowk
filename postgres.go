@@ -22,7 +22,7 @@ func initPostgres() {
 	}
 	pgxConfig, err := pgxpool.ParseConfig(databaseDsn)
 	if err != nil {
-		slog.Error("PostgreSQL配置解析异常: %s  err:%v\n", databaseDsn, err)
+		slog.Error("PostgreSQL配置解析异常", "dsn", databaseDsn, "err", err)
 		return
 	}
 	pgxConfig.ConnConfig.Tracer = &tracelog.TraceLog{
@@ -33,7 +33,7 @@ func initPostgres() {
 	defer cancel()
 	pool, err := pgxpool.NewWithConfig(ctx, pgxConfig)
 	if err != nil {
-		slog.Error("PostgreSQL连接池异常: %v\n", err)
+		slog.Error("PostgreSQL连接池异常", "err", err)
 		return
 	}
 	defaultPostgres.Store(pool)

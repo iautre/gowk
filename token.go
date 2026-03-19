@@ -115,7 +115,7 @@ func loginWithOidcJwt(ctx *gin.Context, token *Token) {
 		token.Value,
 		86400,
 		"/",
-		BaseURL(),
+		"",   // domain: empty for same-origin
 		true, // Secure
 		true, // HttpOnly
 	)
@@ -130,7 +130,8 @@ func TokenValue(ctx context.Context) string {
 	return ctx.Value(ContextTokenValueKey).(string)
 }
 func TokenInfo(ctx context.Context) *Token {
-	return ctx.Value(ContextTokenValueKey).(*Token)
+	t, _ := ctx.Value(ContextTokenKey).(*Token)
+	return t
 }
 func LoginId(ctx context.Context) int64 {
 	return ctx.Value(ContextLoginIdKey).(int64)

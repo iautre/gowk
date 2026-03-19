@@ -34,7 +34,7 @@ func getTraceId(ctx context.Context) []slog.Attr {
 	return []slog.Attr{
 		slog.Any(TRACE_ID, ctx.Value(TRACE_ID)),
 		slog.Any(SPAN_ID, ctx.Value(SPAN_ID)),
-		slog.Any(PSPAN_ID, ctx.Value(SPAN_ID)),
+		slog.Any(PSPAN_ID, ctx.Value(PSPAN_ID)),
 	}
 }
 

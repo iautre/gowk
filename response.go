@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 func Response(ctx *gin.Context, statusCode int, data any, err error) {
-	if http.StatusOK == statusCode {
+	if statusCode == http.StatusOK {
 		ctx.JSON(statusCode, data)
 	} else {
 		if err == nil {
-			err = errors.New(fmt.Sprintf("%d", statusCode))
+			err = errors.New(strconv.Itoa(statusCode))
 		}
 		ctx.JSON(statusCode, gin.H{
 			"error": err.Error(),

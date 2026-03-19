@@ -39,8 +39,9 @@ func TransactionHandler() gin.HandlerFunc {
 }
 
 func Begin(ctx context.Context) error {
-	tx := ctx.Value(TRANSACTION).(*Transaction)
-	if tx == nil {
+	v := ctx.Value(TRANSACTION)
+	tx, ok := v.(*Transaction)
+	if !ok || tx == nil {
 		slog.InfoContext(ctx, "开启事务失败，未配置事务")
 		return errors.New("开启事务失败，未配置事务 TransactionHandler")
 	}
@@ -59,12 +60,16 @@ func End(ctx context.Context, err error) {
 }
 
 func Commit(ctx context.Context) {
-	tx := ctx.Value(TRANSACTION).(*Transaction)
+	v := ctx.Value(TRANSACTION)
+	tx, _ := v.(*Transaction)
+	if tx == nil {
+		return
+	}
 	tx.mu.Lock()
 	defer tx.mu.Unlock()
 	if tx.Begin && tx.Tx != nil {
 		if err := tx.Tx.Commit(ctx); err != nil {
-			slog.ErrorContext(ctx, "事务提交失败", err.Error())
+			slog.ErrorContext(ctx, "事务提交失败", "err", err)
 		}
 		tx.Begin = false
 		tx.Tx = nil
@@ -72,12 +77,16 @@ func Commit(ctx context.Context) {
 }
 
 func Rollback(ctx context.Context) {
-	tx := ctx.Value(TRANSACTION).(*Transaction)
+	v := ctx.Value(TRANSACTION)
+	tx, _ := v.(*Transaction)
+	if tx == nil {
+		return
+	}
 	tx.mu.Lock()
 	defer tx.mu.Unlock()
 	if tx.Begin && tx.Tx != nil {
 		if err := tx.Tx.Rollback(ctx); err != nil {
-			slog.ErrorContext(ctx, "事务回滚失败", err.Error())
+			slog.ErrorContext(ctx, "事务回滚失败", "err", err)
 		}
 		tx.Begin = false
 		tx.Tx = nil

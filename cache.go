@@ -35,11 +35,13 @@ type cache struct {
 }
 
 func (r *cache) Get(key string) interface{} {
-	item := r.Data[key]
-	if item.isExpire() {
+	r.RLock()
+	it := r.Data[key]
+	r.RUnlock()
+	if it == nil || it.isExpire() {
 		return nil
 	}
-	return item.value
+	return it.value
 }
 func (r *cache) Set(key string, value interface{}, expireIns ...time.Duration) {
 	r.Lock()
