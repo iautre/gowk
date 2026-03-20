@@ -12,15 +12,22 @@ import (
 
 func Response(ctx *gin.Context, statusCode int, data any, err error) {
 	if statusCode == http.StatusOK {
-		ctx.JSON(statusCode, data)
+		ctx.JSON(statusCode, Result(data))
 	} else {
 		if err == nil {
 			err = errors.New(strconv.Itoa(statusCode))
 		}
-		ctx.JSON(statusCode, gin.H{
-			"error": err.Error(),
-			"code":  statusCode,
-		})
+		var ec *ErrorCode
+		if errors.As(err, &ec) {
+			ec.Status = statusCode
+			ctx.JSON(statusCode, ec)
+		} else {
+			ctx.JSON(statusCode, &ErrorCode{
+				Status: statusCode,
+				Code:   statusCode,
+				Msg:    err.Error(),
+			})
+		}
 	}
 	ctx.Abort()
 }

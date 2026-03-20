@@ -111,3 +111,15 @@ func (e *ErrorCode) String() string {
 	jsonByte, _ := json.Marshal(e)
 	return string(jsonByte)
 }
+
+// MarshalJSON 在所有响应中自动注入 success 字段：code=0 时为 true，否则为 false。
+func (e *ErrorCode) MarshalJSON() ([]byte, error) {
+	type plain ErrorCode // 避免递归
+	return json.Marshal(&struct {
+		Success bool `json:"success"`
+		*plain
+	}{
+		Success: e.Code == 0,
+		plain:   (*plain)(e),
+	})
+}
