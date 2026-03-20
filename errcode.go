@@ -98,8 +98,8 @@ var (
 	ERR_DBERR    = NewErrorCode(2501, "查询失败")
 	ERR_NODATA   = NewErrorCode(2502, "无数据")
 
-	ERR_WS_CONTENT = NewErrorCode(0, "已连接")
-	ERR_WS_CLOSE   = NewErrorCode(-1, "已连接")
+	ERR_WS_CONTENT = NewErrorCode(300, "已连接")
+	ERR_WS_CLOSE   = NewErrorCode(301, "已断开")
 )
 
 // 实现error接口

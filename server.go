@@ -1,9 +1,11 @@
 package gowk
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,73 +16,58 @@ type ServerConfig struct {
 }
 
 func Run(config *ServerConfig) {
-	// Initialize database connection once
-	initPostgres()
+	// 通过 sync.Once 保证连接池只初始化一次
+	InitPostgres()
 
-	// Store server references for graceful shutdown
 	var httpServer *HttpServer
 	var grpcServer *GrpcServer
 
-	// Start HTTP server first (for health checks and monitoring)
 	if config.HttpEngine != nil {
-		httpServer = &HttpServer{
-			Engine: config.HttpEngine,
-		}
-		httpServer.ServerRun() // This initializes Handler and starts server
+		httpServer = &HttpServer{Engine: config.HttpEngine}
+		httpServer.ServerRun()
 		log.Printf(" [INFO] HTTP server started")
 	}
 
-	// Start gRPC server second
 	if config.GrpcServer != nil {
 		grpcServer = config.GrpcServer
 		grpcServer.ServerRun()
 		log.Printf(" [INFO] gRPC server started")
 	}
 
-	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
+	// 同时监听 SIGINT（Ctrl+C）和 SIGTERM（Docker/K8s 停止信号）
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	// Graceful shutdown with timeout
 	log.Println("Shutting down servers...")
 
-	// Shutdown gRPC server first (it stops immediately)
 	if grpcServer != nil {
 		grpcServer.ServerStop()
 		log.Printf(" [INFO] gRPC server stopped")
 	}
-
-	// Shutdown HTTP server second (with timeout)
 	if httpServer != nil {
 		httpServer.ServerStop()
 		log.Printf(" [INFO] HTTP server stopped")
 	}
 
-	// Close database connection once
 	closePostgres()
-
 	log.Println("All servers stopped")
 }
 
-// RunHTTP starts only HTTP server
 func RunHTTP(engine *gin.Engine) {
-	Run(&ServerConfig{
-		HttpEngine: engine,
-	})
+	Run(&ServerConfig{HttpEngine: engine})
 }
 
-// RunGRPC starts only gRPC server
 func RunGRPC(grpcServer *GrpcServer) {
-	Run(&ServerConfig{
-		GrpcServer: grpcServer,
-	})
+	Run(&ServerConfig{GrpcServer: grpcServer})
 }
 
-// RunBoth starts both HTTP and gRPC servers
 func RunBoth(engine *gin.Engine, grpcServer *GrpcServer) {
-	Run(&ServerConfig{
-		HttpEngine: engine,
-		GrpcServer: grpcServer,
-	})
+	Run(&ServerConfig{HttpEngine: engine, GrpcServer: grpcServer})
+}
+
+// InitPostgres 供外部或 Run() 调用，通过 sync.Once 保证只初始化一次。
+func InitPostgres() {
+	// 触发 Postgres() 内的 pgInitOnce.Do(initPostgres)
+	Postgres(context.Background())
 }

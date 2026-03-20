@@ -1,8 +1,11 @@
 package gowk
 
 import (
-	"github.com/redis/go-redis/v9"
+	"context"
+	"log/slog"
 	"sync"
+
+	"github.com/redis/go-redis/v9"
 )
 
 var defaultRedis *redis.Client
@@ -14,11 +17,19 @@ func Redis() *redis.Client {
 }
 
 func initRedis() {
-	if HasRedis() {
-		defaultRedis = redis.NewClient(&redis.Options{
-			Addr:     redisAddr,
-			Password: redisPassword, // 没有密码，默认值
-			DB:       redisDB,       // 默认DB 0
-		})
+	if !HasRedis() {
+		return
 	}
+	client := redis.NewClient(&redis.Options{
+		Addr:     redisAddr,
+		Password: redisPassword,
+		DB:       redisDB,
+	})
+	ctx := context.Background()
+	if err := client.Ping(ctx).Err(); err != nil {
+		slog.Error("Redis 连接失败", "addr", redisAddr, "err", err)
+		return
+	}
+	defaultRedis = client
+	slog.Info("Redis 连接成功", "addr", redisAddr)
 }

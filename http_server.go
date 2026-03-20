@@ -42,20 +42,12 @@ func (h *HttpServer) ServerRun() {
 		h.Handler = &http.Server{
 			Addr:    httpServerAddr,
 			Handler: h.Engine,
-			// ReadTimeout:    time.Duration(75) * time.Second,
-			// WriteTimeout:   time.Duration(75) * time.Second,
-			// MaxHeaderBytes: 1 << uint(20),
 		}
 	}
 	go func() {
 		log.Printf(" [INFO] HttpServerRun:%s\n", httpServerAddr)
-		if err := h.Handler.ListenAndServe(); err != nil {
-			// Check if it's a normal shutdown (not a fatal error)
-			if errors.Is(err, http.ErrServerClosed) {
-				log.Printf(" [INFO] HttpServerRun:%s err:%v\n", httpServerAddr, err)
-			} else {
-				log.Fatalf(" [ERROR] HttpServerRun:%s err:%v\n", httpServerAddr, err)
-			}
+		if err := h.Handler.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Printf(" [ERROR] HttpServerRun:%s err:%v\n", httpServerAddr, err)
 		}
 	}()
 }
@@ -65,7 +57,8 @@ func (h *HttpServer) ServerStop() {
 	defer cancel()
 
 	if err := h.Handler.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf(" [ERROR] HttpServerStop err:%v\n", err)
+		// 用 Printf 而非 Fatalf，避免跳过 defer 导致资源无法释放
+		log.Printf(" [ERROR] HttpServerStop err:%v\n", err)
 	}
 	log.Printf(" [INFO] HttpServerStop stopped\n")
 }

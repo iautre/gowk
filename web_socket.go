@@ -6,18 +6,40 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
 
+// wsOriginCheck 业务层可通过 SetWebSocketOriginCheck 替换，默认执行同源校验。
+var wsOriginCheck func(r *http.Request) bool
+
+// SetWebSocketOriginCheck 注册自定义 WebSocket 来源校验函数。
+func SetWebSocketOriginCheck(f func(r *http.Request) bool) {
+	wsOriginCheck = f
+}
+
+func defaultCheckOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return true
+	}
+	host := r.Host
+	return strings.EqualFold(origin, "https://"+host) ||
+		strings.EqualFold(origin, "http://"+host)
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:    1024,
 	WriteBufferSize:   1024,
 	EnableCompression: true,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // 允许所有来源，生产环境中应该更严格
+		if wsOriginCheck != nil {
+			return wsOriginCheck(r)
+		}
+		return defaultCheckOrigin(r)
 	},
 }
 
@@ -27,6 +49,9 @@ var defaultMessage = &Server{
 	register:   make(chan *SocketClient),
 	unregister: make(chan *SocketClient),
 }
+
+// wsInitOnce 确保 run goroutine 只启动一次。
+var wsInitOnce sync.Once
 
 type MessageInterface interface {
 	HandlerMessage(*Message) error
@@ -45,13 +70,13 @@ func WebSocketHandlerFunc(si MessageInterface) gin.HandlerFunc {
 			return
 		}
 		defaultMessage.MessageInterface = si
-		client_name := c.GetString(WEB_SOCKET_CLIENT_NAME)
-		if client_name == "" {
-			client_name = conn.RemoteAddr().String()
+		clientName := c.GetString(WEB_SOCKET_CLIENT_NAME)
+		if clientName == "" {
+			clientName = conn.RemoteAddr().String()
 		}
 		client := &SocketClient{
 			conn:  conn,
-			name:  client_name,
+			name:  clientName,
 			send:  make(chan *Message),
 			serve: defaultMessage,
 		}
@@ -61,8 +86,11 @@ func WebSocketHandlerFunc(si MessageInterface) gin.HandlerFunc {
 	}
 }
 
+// Init 确保消息分发 goroutine 只启动一次。
 func Init() {
-	go defaultMessage.run()
+	wsInitOnce.Do(func() {
+		go defaultMessage.run()
+	})
 }
 
 type Message struct {
@@ -101,24 +129,43 @@ func (s *Server) unRegisterClient(client *SocketClient) {
 		close(client.send)
 	}
 }
+
 func (s *Server) registerClient(client *SocketClient) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.clients[client.name] = client
 }
+
 func (s *Server) handlerMessage(message *Message) {
 	err := s.MessageInterface.HandlerMessage(message)
 	if err != nil {
 		slog.Error("消息处理失败，返回给发送者")
-		if e, ok := err.(*ErrorCode); ok {
-			s.sendMessage(&Message{Receiver: message.Sender, err: e})
+		var ec *ErrorCode
+		if errors.As(err, &ec) {
+			s.sendErrorMessage(message.Sender, ec)
 		} else {
-			s.sendMessage(&Message{Receiver: message.Sender, err: Error(err)})
+			s.sendErrorMessage(message.Sender, Error(err))
 		}
 	}
 }
+
+// sendErrorMessage 向指定客户端发送错误消息，不要求 Content 非空。
+func (s *Server) sendErrorMessage(receiver string, ec *ErrorCode) {
+	if receiver == "" {
+		return
+	}
+	s.mu.Lock()
+	client, ok := s.clients[receiver]
+	s.mu.Unlock()
+	if !ok {
+		slog.Warn(fmt.Sprintf("sendErrorMessage: 客户端 %s 不在线", receiver))
+		return
+	}
+	client.send <- &Message{Receiver: receiver, err: ec}
+}
+
 func (s *Server) sendMessage(message *Message) error {
-	if message == nil || message.Content == nil {
+	if message == nil {
 		return NewError("没有发送内容")
 	}
 	if message.Receiver == "" {
@@ -127,14 +174,19 @@ func (s *Server) sendMessage(message *Message) error {
 	if message.Sender == "" {
 		return NewError("没有发送者信息")
 	}
+	if message.Content == nil && message.err == nil {
+		return NewError("没有发送内容")
+	}
 	if message.err == nil {
 		message.err = SocketMsg(message.Content, message.Sender)
 	}
-	if client, ok := s.clients[message.Receiver]; ok {
-		client.send <- message
-	} else {
+	s.mu.Lock()
+	client, ok := s.clients[message.Receiver]
+	s.mu.Unlock()
+	if !ok {
 		return NewError(fmt.Sprintf("客户端%s不在线", message.Receiver))
 	}
+	client.send <- message
 	return nil
 }
 
@@ -155,12 +207,12 @@ func (c *SocketClient) writePump() {
 		if !ok {
 			return
 		}
-		err := c.conn.WriteJSON(message.err)
-		if err != nil {
+		if err := c.conn.WriteJSON(message.err); err != nil {
 			return
 		}
 	}
 }
+
 func (c *SocketClient) readPump() {
 	defer func() {
 		c.serve.unregister <- c
@@ -176,7 +228,7 @@ func (c *SocketClient) readPump() {
 				continue
 			}
 			if !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-				slog.Error(fmt.Sprintf("客户端连接异常断开: %v\n", err))
+				slog.Error(fmt.Sprintf("客户端连接异常断开: %v", err))
 			}
 			return
 		}

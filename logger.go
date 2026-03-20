@@ -3,14 +3,13 @@ package gowk
 import (
 	"bytes"
 	"context"
-	"github.com/jackc/pgx/v5/tracelog"
+	"log/slog"
 	"os"
 	"time"
 
-	"log/slog"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/tracelog"
 )
 
 func Logger(l slog.Level) *slog.Logger {
@@ -38,29 +37,18 @@ func getTraceId(ctx context.Context) []slog.Attr {
 	}
 }
 
-// func source(pc uintptr) *slog.Source {
-// 	fs := runtime.CallersFrames([]uintptr{pc})
-// 	f, _ := fs.Next()
-// 	return &slog.Source{
-// 		Function: f.Function,
-// 		File:     f.File,
-// 		Line:     f.Line,
-// 	}
-// }
-
 const (
 	START_TIME string = "startTime"
-
-	TRACE_ID string = "trace_id"
-	SPAN_ID  string = "span_id"
-	PSPAN_ID string = "pspan_id"
+	TRACE_ID   string = "trace_id"
+	SPAN_ID    string = "span_id"
+	PSPAN_ID   string = "pspan_id"
 )
 
 func RequestMiddleware() gin.HandlerFunc {
 	r := &requestLog{}
 	return func(c *gin.Context) {
 		bw := &CustomResponseWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
-		// c.Writer = bw
+		c.Writer = bw
 		r.RequestInLog(c)
 		defer r.RequestOutLog(c, bw.body)
 		c.Next()
@@ -69,18 +57,10 @@ func RequestMiddleware() gin.HandlerFunc {
 
 type requestLog struct{}
 
-// 请求进入日志
 func (r *requestLog) RequestInLog(ctx *gin.Context) {
-	arrts := []any{
-		// {Key: "type", Value: slog.StringValue("start")},
-		"ip", slog.StringValue(ctx.ClientIP()),
-		"method", slog.StringValue(ctx.Request.Method),
-		"uri", slog.StringValue(ctx.Request.RequestURI),
-		"header", slog.AnyValue(ctx.Request.Header),
-		"body", slog.AnyValue(ctx.Request.Body),
-	}
 	startTime := time.Now()
 	ctx.Set(START_TIME, startTime)
+
 	traceId := ctx.Request.Header.Get(TRACE_ID)
 	if traceId == "" {
 		traceId = uuid.NewString()
@@ -97,22 +77,22 @@ func (r *requestLog) RequestInLog(ctx *gin.Context) {
 	ctx.Set(SPAN_ID, spanId)
 	ctx.Request.Header.Set(SPAN_ID, spanId)
 
-	slog.InfoContext(ctx, "start", arrts...)
+	// 只记录非敏感信息，不记录 Header（含 Authorization）和 Body
+	slog.InfoContext(ctx, "start",
+		"ip", ctx.ClientIP(),
+		"method", ctx.Request.Method,
+		"uri", ctx.Request.RequestURI,
+	)
 }
 
-// 请求输出日志
 func (r *requestLog) RequestOutLog(ctx *gin.Context, body *bytes.Buffer) {
-	// after request
 	endTime := time.Now()
 	startTime, _ := ctx.Get(START_TIME)
 	usedTime := endTime.Sub(startTime.(time.Time)).Milliseconds()
-	arrts := []any{
-		// {Key: "type", Value: slog.StringValue("start")},
-		"status", slog.IntValue(ctx.Writer.Status()),
-		"usedTime", slog.Int64Value(usedTime),
-		// "responeBody", slog.StringValue(body.String()),
-	}
-	slog.InfoContext(ctx, "end", arrts...)
+	slog.InfoContext(ctx, "end",
+		"status", ctx.Writer.Status(),
+		"usedTime", usedTime,
+	)
 }
 
 type CustomResponseWriter struct {
@@ -130,16 +110,21 @@ func (w CustomResponseWriter) WriteString(s string) (int, error) {
 	return w.ResponseWriter.WriteString(s)
 }
 
-type PostgresLogger struct {
-}
+// PostgresLogger 实现 pgx tracelog.Logger 接口，按实际日志级别输出 SQL。
+type PostgresLogger struct{}
 
 func (p *PostgresLogger) Log(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
-	// 提取 SQL 和参数
-	if sql, ok := data["sql"]; ok {
-		args := data["args"]
-		// 打印格式化日志
-		slog.InfoContext(ctx, "[SQL]", sql)
-		slog.InfoContext(ctx, "[SQL]", args)
-	}
+	sql, _ := data["sql"]
+	args := data["args"]
 
+	logFn := slog.InfoContext
+	switch level {
+	case tracelog.LogLevelDebug, tracelog.LogLevelTrace:
+		logFn = slog.DebugContext
+	case tracelog.LogLevelWarn:
+		logFn = slog.WarnContext
+	case tracelog.LogLevelError:
+		logFn = slog.ErrorContext
+	}
+	logFn(ctx, "[SQL] "+msg, "sql", sql, "args", args)
 }

@@ -14,34 +14,35 @@ var (
 	redisDB          = mustAtoi(getEnv("REDIS_DB", "0"))
 	weappAppid       = getEnv("WEAPP_APPID", "")
 	weappSecret      = getEnv("WEAPP_SECRET", "")
-	weappJsapiTicket = getEnv("WEAPP_JSAPI_TICKET", "0")
+	weappJsapiTicket = getEnvBool("WEAPP_JSAPI_TICKET", false)
 	authAPIPrefix    = getEnv("AUTH_API_PREFIX", "")
 )
 
-// Dynamic server addresses (set from command line)
 var (
 	httpServerAddr = getEnv("HTTP_SERVER_ADDR", ":3030")
 	grpcServerAddr = getEnv("GRPC_SERVER_ADDR", ":3031")
 )
 
-// SetServerAddr allows setting server addresses from command line
-func SetHTTPServerAddr(addr string) {
-	httpServerAddr = addr
-}
+func SetHTTPServerAddr(addr string) { httpServerAddr = addr }
+func SetGRPCServerAddr(addr string) { grpcServerAddr = addr }
 
-func SetGRPCServerAddr(addr string) {
-	grpcServerAddr = addr
-}
-
-// Helper funcs
 func getEnv(key, defaultValue string) string {
-	// 从环境变量中获取指定键的值
 	if v := os.Getenv(key); v != "" {
-		// 如果环境变量中存在该键且值不为空，则返回该值
 		return v
 	}
-	// 如果环境变量中不存在该键或值为空，则返回默认值
 	return defaultValue
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultValue
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return defaultValue
+	}
+	return b
 }
 
 func mustAtoi(s string) int {
@@ -51,22 +52,16 @@ func mustAtoi(s string) int {
 	return 0
 }
 
-func HasRedis() bool {
-	return redisAddr != ""
-}
+func HasRedis() bool { return redisAddr != "" }
 
-func HasWeapp() bool {
-	return weappAppid != "" && weappSecret != ""
-}
+func HasWeapp() bool { return weappAppid != "" && weappSecret != "" }
 
 func AuthAPIPrefix() string {
 	prefix := authAPIPrefix
 	if prefix == "" {
 		return ""
 	}
-	// Remove trailing slash
 	prefix = strings.TrimSuffix(prefix, "/")
-	// Add leading slash if missing
 	if !strings.HasPrefix(prefix, "/") {
 		prefix = "/" + prefix
 	}
@@ -74,10 +69,5 @@ func AuthAPIPrefix() string {
 }
 
 func BaseURL() string {
-	url := baseURL
-	if url == "" {
-		return ""
-	}
-	// Remove trailing slash for consistency
-	return strings.TrimSuffix(url, "/")
+	return strings.TrimSuffix(baseURL, "/")
 }
