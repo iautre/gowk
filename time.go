@@ -4,9 +4,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 type Time struct {
@@ -61,24 +58,3 @@ func (t *Time) Scan(v interface{}) error {
 	return fmt.Errorf("can not convert %v to timestamp", v)
 }
 
-// 实现 bson 的 序列化方法
-func (t *Time) MarshalBSONValue() (bsontype.Type, []byte, error) {
-	timestampt := t.Time.Format(TimeFormat)
-	retByte := make([]byte, 0)
-	retByte = bsoncore.AppendString(retByte, timestampt)
-	return bsontype.String, retByte, nil
-}
-
-// 实现 bson 的 反序列化方法
-func (t *Time) UnmarshalBSONValue(ty bsontype.Type, data []byte) error {
-	if ty == bsontype.String {
-		if readString, _, ok := bsoncore.ReadString(data); ok {
-			now, err := time.ParseInLocation(TimeFormat, readString, time.Local)
-			if err != nil {
-				return err
-			}
-			*t = Time{now}
-		}
-	}
-	return nil
-}

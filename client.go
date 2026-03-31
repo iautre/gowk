@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -87,7 +88,10 @@ func (d *defaultClientStore) LoadClient(_ context.Context, key string) (*Client,
 type redisClientStore struct{}
 
 func (d *redisClientStore) StoreClient(ctx context.Context, key string, client *Client) error {
-	jsonData, _ := json.Marshal(client)
+	jsonData, err := json.Marshal(client)
+	if err != nil {
+		return fmt.Errorf("marshal client: %w", err)
+	}
 	return Redis().Set(ctx, redisClientPrefix+key, string(jsonData), time.Duration(_defaultTokenTimeout)*time.Second).Err()
 }
 

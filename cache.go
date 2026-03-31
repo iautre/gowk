@@ -64,10 +64,6 @@ func (r *cache) Del(key string) {
 	r.Unlock()
 }
 
-func (r *cache) GC() {
-
-}
-
 func (i *item) isExpire() bool {
 	if i.expireIn == 0 {
 		return false

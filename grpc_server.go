@@ -21,6 +21,10 @@ func NewGrpcServer() *GrpcServer {
 }
 
 func (s *GrpcServer) ServerRun() {
+	if !HasGRPC() {
+		log.Printf(" [INFO] GRPC_SERVER_ADDR 未配置，跳过 gRPC 启动")
+		return
+	}
 	if s.Server == nil {
 		s.Server = grpc.NewServer()
 	}

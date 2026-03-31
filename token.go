@@ -6,11 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -183,7 +181,10 @@ type redisTokenStore struct{}
 const redisTokenPrefix = "ATOKEN_TOKEN_"
 
 func (d *redisTokenStore) StoreToken(ctx context.Context, key string, token *Token) error {
-	jsonData, _ := json.Marshal(token)
+	jsonData, err := json.Marshal(token)
+	if err != nil {
+		return fmt.Errorf("marshal token: %w", err)
+	}
 	return Redis().Set(ctx, redisTokenPrefix+key, string(jsonData), time.Duration(_defaultTokenTimeout)*time.Second).Err()
 }
 
@@ -207,142 +208,4 @@ func init() {
 			Token: make(map[string]*Token),
 		}
 	}
-	initWeapp()
-}
-
-// ── 微信相关 ──────────────────────────────────────────────────────────────────
-
-func initWeapp() {
-	if HasWeapp() {
-		go func() {
-			var weapp Weapp
-			weapp.InitWeapp()
-			ticker := time.NewTicker((7200 - 60) * time.Second)
-			defer ticker.Stop()
-			for range ticker.C {
-				weapp.InitWeapp()
-			}
-		}()
-	}
-}
-
-func GetWeappAccessToken() string {
-	if weapp_access_token.Load() == nil {
-		return ""
-	}
-	return weapp_access_token.Load().AccessToken
-}
-
-func GetWeappJsapiTicket() string {
-	if weapp_jsapi_ticket.Load() == nil {
-		return ""
-	}
-	return weapp_jsapi_ticket.Load().Ticket
-}
-
-var (
-	weapp_access_token atomic.Pointer[WeappAccessToken]
-	weapp_jsapi_ticket atomic.Pointer[WeappJsapiTicket]
-)
-
-type Weapp struct {
-	AccessToken string `json:"access_token"`
-	Ticket      string `json:"ticket"`
-}
-
-type WeappErr struct {
-	Errcode int64  `json:"errcode"`
-	Errmsg  string `json:"errmsg"`
-}
-
-type WeappAccessToken struct {
-	WeappErr
-	AccessToken string `json:"access_token"`
-	ExpiresIn   int64  `json:"expires_in"`
-	ExpiresTime int64
-}
-
-type WeappJsapiTicket struct {
-	WeappErr
-	Ticket      string `json:"ticket"`
-	ExpiresIn   int64  `json:"expires_in"`
-	ExpiresTime int64
-}
-
-func (w *Weapp) InitWeapp() {
-	slog.Info("获取微信access_token")
-	if err := w.SetAccessToken(); err != nil {
-		slog.Error(err.Error())
-		return
-	}
-	slog.Info("获取微信jsapi_ticket")
-	if err := w.SetJsapiTicket(); err != nil {
-		slog.Error(err.Error())
-	}
-}
-
-func (w *Weapp) SetAccessToken() error {
-	wt, err := w.GetAccessToken(context.TODO())
-	if err != nil {
-		return err
-	}
-	weapp_access_token.Store(wt)
-	return nil
-}
-
-func (w *Weapp) SetJsapiTicket() error {
-	if !weappJsapiTicket {
-		return nil
-	}
-	if weapp_access_token.Load() == nil {
-		return errors.New("jsapi_ticket初始化失败：access_token未就绪")
-	}
-	wt, err := w.GetJsapiTicket(context.TODO(), weapp_access_token.Load().AccessToken)
-	if err != nil {
-		return err
-	}
-	weapp_jsapi_ticket.Store(wt)
-	return nil
-}
-
-const getAccessTokenUrl = "https://api.weixin.qq.com/cgi-bin/token"
-
-func (w *Weapp) GetAccessToken(ctx context.Context) (*WeappAccessToken, error) {
-	if !HasWeapp() {
-		return nil, errors.New("weapp配置错误")
-	}
-	res, err := HttpClient().Get(fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s",
-		getAccessTokenUrl, weappAppid, weappSecret))
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	var t WeappAccessToken
-	if err = json.NewDecoder(res.Body).Decode(&t); err != nil {
-		return nil, err
-	}
-	if t.Errcode != 0 {
-		return nil, fmt.Errorf("errcode:%d, errmsg: %s", t.Errcode, t.Errmsg)
-	}
-	t.ExpiresTime = t.ExpiresIn + time.Now().Unix()
-	return &t, nil
-}
-
-const getJsapiTicketUrl = "https://api.weixin.qq.com/cgi-bin/ticket/getticket"
-
-func (w *Weapp) GetJsapiTicket(ctx context.Context, accessToken string) (*WeappJsapiTicket, error) {
-	res, err := HttpClient().Get(fmt.Sprintf("%s?access_token=%s&type=jsapi", getJsapiTicketUrl, accessToken))
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	var t WeappJsapiTicket
-	if err = json.NewDecoder(res.Body).Decode(&t); err != nil {
-		return nil, err
-	}
-	if t.Errcode != 0 {
-		return nil, fmt.Errorf("errcode:%d, errmsg: %s", t.Errcode, t.Errmsg)
-	}
-	t.ExpiresTime = t.ExpiresIn + time.Now().Unix()
-	return &t, nil
 }
