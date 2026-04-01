@@ -13,6 +13,25 @@ func UUID() string {
 	return strings.ReplaceAll(uuid.NewString(), "-", "")
 }
 
+// UUIDV7 生成 RFC 9562 UUID v7（时间排序、可索引）。失败时返回错误（熵源异常等）。
+func UUIDV7() (uuid.UUID, error) {
+	return uuid.NewV7()
+}
+
+// MustUUIDV7 生成 UUID v7，失败时 panic（与 GenerateRandomString 策略一致，仅用于确信可用的环境）。
+func MustUUIDV7() uuid.UUID {
+	u, err := uuid.NewV7()
+	if err != nil {
+		panic(fmt.Sprintf("gowk: uuid v7: %v", err))
+	}
+	return u
+}
+
+// UUIDV7String 返回标准带连字符的 UUID v7 字符串。
+func UUIDV7String() string {
+	return MustUUIDV7().String()
+}
+
 // GenerateRandomString 生成指定长度的随机字符串。
 // crypto/rand 失败时重试，最多 3 次后 panic。
 func GenerateRandomString(length int) string {
