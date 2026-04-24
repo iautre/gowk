@@ -3,8 +3,9 @@ package gowk
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"time"
 
@@ -32,7 +33,10 @@ func New() *gin.Engine {
 	return engine
 }
 
-func (h *HttpServer) ServerRun() {
+// ServerRun 同步执行 net.Listen 绑定端口，成功后把 Serve 放到 goroutine 里运行。
+// 监听失败（端口占用/地址非法等）直接返回 error，由调用方决定 fail-fast；
+// Serve 阶段的非 ErrServerClosed 错误只打日志，不再向上传递（此时端口已绑好，进程也已通告 running）。
+func (h *HttpServer) ServerRun() error {
 	if h.Engine == nil {
 		h.Engine = gin.Default()
 	}
@@ -42,12 +46,17 @@ func (h *HttpServer) ServerRun() {
 			Handler: h.Engine,
 		}
 	}
+	ln, err := net.Listen("tcp", h.Handler.Addr)
+	if err != nil {
+		return fmt.Errorf("HTTP 监听失败 addr=%s: %w", h.Handler.Addr, err)
+	}
+	slog.Info("HTTP server running", "addr", ln.Addr().String())
 	go func() {
-		log.Printf(" [INFO] HttpServerRun:%s\n", httpServerAddr)
-		if err := h.Handler.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Printf(" [ERROR] HttpServerRun:%s err:%v\n", httpServerAddr, err)
+		if err := h.Handler.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("HTTP server serve failed", "addr", ln.Addr().String(), "err", err)
 		}
 	}()
+	return nil
 }
 
 func (h *HttpServer) ServerStop() {
@@ -55,8 +64,8 @@ func (h *HttpServer) ServerStop() {
 	defer cancel()
 
 	if err := h.Handler.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		// 用 Printf 而非 Fatalf，避免跳过 defer 导致资源无法释放
-		log.Printf(" [ERROR] HttpServerStop err:%v\n", err)
+		// 不走 Fatal，避免跳过 defer 导致资源无法释放
+		slog.Error("HTTP server shutdown failed", "err", err)
 	}
-	log.Printf(" [INFO] HttpServerStop stopped\n")
+	slog.Info("HTTP server stopped")
 }

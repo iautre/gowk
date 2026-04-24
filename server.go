@@ -2,7 +2,7 @@ package gowk
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,7 +16,8 @@ type ServerConfig struct {
 }
 
 func Run(config *ServerConfig) {
-	// 通过 sync.Once 保证连接池只初始化一次
+	// 触发 Postgres 后台初始化（非阻塞，连不上也不退出，后台退避重试）。
+	// Redis 保持按需：首次 Redis() / InitRedis() 时才触发后台初始化。
 	InitPostgres()
 
 	var httpServer *HttpServer
@@ -24,14 +25,27 @@ func Run(config *ServerConfig) {
 
 	if config.HttpEngine != nil {
 		httpServer = &HttpServer{Engine: config.HttpEngine}
-		httpServer.ServerRun()
-		log.Printf(" [INFO] HTTP server started")
+		if err := httpServer.ServerRun(); err != nil {
+			slog.Error("HTTP 启动失败，进程退出", "err", err)
+			// 监听都没成功，无需 Shutdown HTTP；顺手清理已触发的依赖初始化。
+			closePostgres()
+			closeRedis()
+			os.Exit(1)
+		}
 	}
 
 	if config.GrpcServer != nil {
 		grpcServer = config.GrpcServer
-		grpcServer.ServerRun()
-		log.Printf(" [INFO] gRPC server started")
+		if err := grpcServer.ServerRun(); err != nil {
+			slog.Error("gRPC 启动失败，进程退出", "err", err)
+			// HTTP 可能已经起来了，先优雅关掉避免端口残留。
+			if httpServer != nil {
+				httpServer.ServerStop()
+			}
+			closePostgres()
+			closeRedis()
+			os.Exit(1)
+		}
 	}
 
 	quit := make(chan os.Signal, 1)
@@ -39,19 +53,20 @@ func Run(config *ServerConfig) {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down servers...")
+	slog.Info("Shutting down servers...")
 
 	if grpcServer != nil {
 		grpcServer.ServerStop()
-		log.Printf(" [INFO] gRPC server stopped")
+		slog.Info("gRPC server stopped")
 	}
 	if httpServer != nil {
 		httpServer.ServerStop()
-		log.Printf(" [INFO] HTTP server stopped")
+		slog.Info("HTTP server stopped")
 	}
 
 	closePostgres()
-	log.Println("All servers stopped")
+	closeRedis()
+	slog.Info("All servers stopped")
 }
 
 func RunHTTP(engine *gin.Engine) {
@@ -66,8 +81,16 @@ func RunBoth(engine *gin.Engine, grpcServer *GrpcServer) {
 	Run(&ServerConfig{HttpEngine: engine, GrpcServer: grpcServer})
 }
 
-// InitPostgres 供外部或 Run() 调用，通过 sync.Once 保证只初始化一次。
+// InitPostgres 触发 Postgres 的 sync.Once 初始化路径。
+// 只会启动后台重试 goroutine，本身非阻塞；连接失败不会退出进程，
+// 在连接成功之前 Postgres(ctx) 返回 nil，PostgresTx 返回 "postgres unavailable"。
 func InitPostgres() {
-	// 触发 Postgres() 内的 pgInitOnce.Do(initPostgres)
 	Postgres(context.Background())
+}
+
+// InitRedis 触发 Redis 的 sync.Once 初始化路径。
+// 只会启动后台重试 goroutine，本身非阻塞；连接失败不会退出进程，
+// 在连接成功之前 Redis() 返回 nil。
+func InitRedis() {
+	Redis()
 }

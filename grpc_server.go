@@ -2,7 +2,8 @@ package gowk
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
 	"net"
 	"time"
 
@@ -20,25 +21,29 @@ func NewGrpcServer() *GrpcServer {
 	return &GrpcServer{Server: s}
 }
 
-func (s *GrpcServer) ServerRun() {
+// ServerRun 同步绑定端口并在后台 Serve。
+// GRPC_SERVER_ADDR 未配置视为"未启用"，返回 nil（不是错误）；
+// 已配置但监听失败，返回 error 交由调用方 fail-fast；
+// Serve 阶段的错误只打日志。
+func (s *GrpcServer) ServerRun() error {
 	if !HasGRPC() {
-		log.Printf(" [INFO] GRPC_SERVER_ADDR 未配置，跳过 gRPC 启动")
-		return
+		slog.Info("GRPC_SERVER_ADDR 未配置，跳过 gRPC 启动")
+		return nil
 	}
 	if s.Server == nil {
 		s.Server = grpc.NewServer()
 	}
+	lis, err := net.Listen("tcp", grpcServerAddr)
+	if err != nil {
+		return fmt.Errorf("gRPC 监听失败 addr=%s: %w", grpcServerAddr, err)
+	}
+	slog.Info("gRPC server running", "addr", lis.Addr().String())
 	go func() {
-		lis, err := net.Listen("tcp", grpcServerAddr)
-		if err != nil {
-			log.Printf(" [ERROR] gRPC 监听失败 %s: %v", grpcServerAddr, err)
-			return
-		}
-		log.Printf(" [INFO] GrpcServerRun:%s\n", grpcServerAddr)
 		if err := s.Server.Serve(lis); err != nil {
-			log.Printf(" [ERROR] GrpcServerRun:%s err:%v\n", grpcServerAddr, err)
+			slog.Error("gRPC server serve failed", "addr", lis.Addr().String(), "err", err)
 		}
 	}()
+	return nil
 }
 
 func (s *GrpcServer) ServerStop() {
@@ -53,9 +58,9 @@ func (s *GrpcServer) ServerStop() {
 
 	select {
 	case <-done:
-		log.Printf(" [INFO] GrpcServerStop stopped\n")
+		slog.Info("gRPC server stopped gracefully")
 	case <-ctx.Done():
-		log.Printf(" [WARN] GrpcServerStop timeout，强制停止\n")
+		slog.Warn("gRPC server graceful stop timeout, forcing stop")
 		s.Server.Stop()
 	}
 }
