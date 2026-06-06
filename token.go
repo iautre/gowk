@@ -91,7 +91,6 @@ func SetTokenHandler(handler TokenHandler) {
 	_defaultTokenHandler = handler
 }
 
-
 func SetTokenTimeout(timeout int64) {
 	_defaultTokenTimeout = timeout
 }

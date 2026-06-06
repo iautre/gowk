@@ -38,6 +38,7 @@ func (s *GrpcServer) ServerRun() error {
 		return fmt.Errorf("gRPC 监听失败 addr=%s: %w", grpcServerAddr, err)
 	}
 	slog.Info("gRPC server running", "addr", lis.Addr().String())
+	grpcServerStarted.Store(true)
 	go func() {
 		if err := s.Server.Serve(lis); err != nil {
 			slog.Error("gRPC server serve failed", "addr", lis.Addr().String(), "err", err)

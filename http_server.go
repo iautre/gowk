@@ -27,6 +27,8 @@ type HttpServer struct {
 func New() *gin.Engine {
 	slog.SetDefault(Logger(slog.LevelInfo))
 	engine := gin.New()
+	// 健康检查端点：注册在全局中间件之前，纯存活探测，所有 gowk 服务共享。
+	engine.GET("/health", healthHandler)
 	engine.Use(GlobalErrorHandler(), LogTrace(), Recover(), TransactionHandler())
 	engine.NoRoute(NotFound())
 	engine.NoMethod(NotFound())
@@ -51,6 +53,7 @@ func (h *HttpServer) ServerRun() error {
 		return fmt.Errorf("HTTP 监听失败 addr=%s: %w", h.Handler.Addr, err)
 	}
 	slog.Info("HTTP server running", "addr", ln.Addr().String())
+	httpServerStarted.Store(true)
 	go func() {
 		if err := h.Handler.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("HTTP server serve failed", "addr", ln.Addr().String(), "err", err)

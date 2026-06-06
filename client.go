@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,7 +14,7 @@ const ContextClientKey = "AKEY_CONTEXT_CLIENT_KEY"
 const redisClientPrefix = "AKEY_CLIENT_"
 
 var _defaultClientHandler ClientHandler
-var _defaultClientKeyName = "akey"
+var _defaultClientKeyNames = []string{"X-API-Key", "akey"}
 
 type Client struct {
 	Key     string `json:"key"`
@@ -29,7 +28,7 @@ func CheckClientMiddleware() gin.HandlerFunc {
 }
 
 func CheckClient(ctx *gin.Context) {
-	keyValue := ctx.Request.Header.Get(_defaultClientKeyName)
+	keyValue := clientKeyValue(ctx)
 	if keyValue == "" {
 		ctx.Error(ERR_AUTH)
 		ctx.Abort()
@@ -46,7 +45,33 @@ func CheckClient(ctx *gin.Context) {
 }
 
 func SetClientHandler(handler ClientHandler) { _defaultClientHandler = handler }
-func SetClientKeyName(name string)           { _defaultClientKeyName = name }
+func SetClientKeyName(name string) {
+	if name == "" {
+		return
+	}
+	_defaultClientKeyNames = []string{name}
+}
+func SetClientKeyNames(names ...string) {
+	var filtered []string
+	for _, name := range names {
+		if name == "" {
+			continue
+		}
+		filtered = append(filtered, name)
+	}
+	if len(filtered) > 0 {
+		_defaultClientKeyNames = filtered
+	}
+}
+
+func clientKeyValue(ctx *gin.Context) string {
+	for _, name := range _defaultClientKeyNames {
+		if value := ctx.Request.Header.Get(name); value != "" {
+			return value
+		}
+	}
+	return ""
+}
 
 func (t *Client) setContextClient(ctx *gin.Context, client *Client) {
 	ctx.Set(ContextClientKey, client)
@@ -92,11 +117,19 @@ func (d *redisClientStore) StoreClient(ctx context.Context, key string, client *
 	if err != nil {
 		return fmt.Errorf("marshal client: %w", err)
 	}
-	return Redis().Set(ctx, redisClientPrefix+key, string(jsonData), time.Duration(_defaultTokenTimeout)*time.Second).Err()
+	rdb := Redis()
+	if rdb == nil {
+		return errors.New("redis is not ready")
+	}
+	return rdb.Set(ctx, redisClientPrefix+key, string(jsonData), 0).Err()
 }
 
 func (d *redisClientStore) LoadClient(ctx context.Context, key string) (*Client, error) {
-	jsonData, err := Redis().Get(ctx, redisClientPrefix+key).Result()
+	rdb := Redis()
+	if rdb == nil {
+		return nil, errors.New("redis is not ready")
+	}
+	jsonData, err := rdb.Get(ctx, redisClientPrefix+key).Result()
 	if err != nil {
 		return nil, err
 	}

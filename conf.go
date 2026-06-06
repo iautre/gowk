@@ -32,9 +32,6 @@ var (
 	grpcServerAddr = getEnv("GRPC_SERVER_ADDR", "")
 )
 
-func SetHTTPServerAddr(addr string) { httpServerAddr = addr }
-func SetGRPCServerAddr(addr string) { grpcServerAddr = addr }
-
 func getEnv(key, defaultValue string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
