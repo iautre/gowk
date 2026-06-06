@@ -8,11 +8,16 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
 type GrpcServer struct {
 	Server *grpc.Server
+
+	health       *health.Server
+	healthCancel context.CancelFunc
 }
 
 func NewGrpcServer() *GrpcServer {
@@ -37,6 +42,17 @@ func (s *GrpcServer) ServerRun() error {
 	if err != nil {
 		return fmt.Errorf("gRPC 监听失败 addr=%s: %w", grpcServerAddr, err)
 	}
+
+	// 注册标准 grpc.health.v1.Health（必须在 Serve 之前）。整体状态("")由后台 updater
+	// 跟随已配置依赖：Postgres/Redis 都连上=SERVING，任一未连上=NOT_SERVING，口径同 HTTP /health。
+	s.health = health.NewServer()
+	grpc_health_v1.RegisterHealthServer(s.Server, s.health)
+	// 先在主线程同步设一次初始状态，避免与下面 Serve 的竞态窗口里被探到 health.NewServer 默认的 SERVING。
+	s.refreshHealthStatus()
+	healthCtx, cancel := context.WithCancel(context.Background())
+	s.healthCancel = cancel
+	go s.runHealthUpdater(healthCtx)
+
 	slog.Info("gRPC server running", "addr", lis.Addr().String())
 	grpcServerStarted.Store(true)
 	go func() {
@@ -47,7 +63,41 @@ func (s *GrpcServer) ServerRun() error {
 	return nil
 }
 
+// refreshHealthStatus 按"已配置依赖是否就绪"设置 grpc 整体健康状态("")：
+// 依赖都连上=SERVING，任一未连上=NOT_SERVING，口径同 HTTP /health。
+func (s *GrpcServer) refreshHealthStatus() {
+	status := grpc_health_v1.HealthCheckResponse_NOT_SERVING
+	if dependenciesReady() {
+		status = grpc_health_v1.HealthCheckResponse_SERVING
+	}
+	s.health.SetServingStatus("", status)
+}
+
+// runHealthUpdater 周期性把"已配置依赖是否就绪"同步到 grpc 健康状态。
+// 依赖由后台异步连接，运行期状态会变化（连上/断开），故需周期刷新；
+// 初始状态已由 ServerRun 在主线程同步设过，这里只负责后续刷新。
+func (s *GrpcServer) runHealthUpdater(ctx context.Context) {
+	ticker := time.NewTicker(grpcHealthRefreshInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.refreshHealthStatus()
+		}
+	}
+}
+
 func (s *GrpcServer) ServerStop() {
+	// 先停健康状态刷新并 Shutdown：把所有 service 置 NOT_SERVING，让 Watch 中的客户端及时摘流量。
+	if s.healthCancel != nil {
+		s.healthCancel()
+	}
+	if s.health != nil {
+		s.health.Shutdown()
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

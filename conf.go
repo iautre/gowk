@@ -25,6 +25,9 @@ var (
 	redisRetryBaseInterval = getEnvDuration("REDIS_RETRY_BASE_INTERVAL", 2*time.Second)
 	redisRetryMaxInterval  = getEnvDuration("REDIS_RETRY_MAX_INTERVAL", 30*time.Second)
 	redisPingTimeout       = getEnvDuration("REDIS_PING_TIMEOUT", 5*time.Second)
+
+	// gRPC 健康状态刷新间隔：后台按此周期把"已配置依赖是否就绪"同步到 grpc.health.v1.Health。
+	grpcHealthRefreshInterval = getEnvDuration("GRPC_HEALTH_REFRESH_INTERVAL", 2*time.Second)
 )
 
 var (

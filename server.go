@@ -16,9 +16,13 @@ type ServerConfig struct {
 }
 
 func Run(config *ServerConfig) {
-	// 触发 Postgres 后台初始化（非阻塞，连不上也不退出，后台退避重试）。
-	// Redis 保持按需：首次 Redis() / InitRedis() 时才触发后台初始化。
+	// 触发 Postgres / Redis 后台初始化（非阻塞，连不上也不退出，后台退避重试）。
+	// 已配置的依赖纳入 /health 健康判定：连上才算健康，未连上 /health 返回 503。
+	// Redis 配置了就必须在启动时主动触发，否则后台重试不启动、healthHandler 会永远判其未连上。
 	InitPostgres()
+	if HasRedis() {
+		InitRedis()
+	}
 
 	var httpServer *HttpServer
 	var grpcServer *GrpcServer
