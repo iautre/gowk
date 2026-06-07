@@ -28,6 +28,9 @@ var (
 
 	// gRPC 健康状态刷新间隔：后台按此周期把"已配置依赖是否就绪"同步到 grpc.health.v1.Health。
 	grpcHealthRefreshInterval = getEnvDuration("GRPC_HEALTH_REFRESH_INTERVAL", 2*time.Second)
+
+	// 数据库迁移建立独立连接的总超时：在此时间内带重试连接 DB，超时仍连不上则迁移失败（fail-fast）。
+	migrationConnectTimeout = getEnvDuration("DATABASE_MIGRATION_CONNECT_TIMEOUT", 30*time.Second)
 )
 
 var (

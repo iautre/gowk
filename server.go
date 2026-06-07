@@ -16,6 +16,30 @@ type ServerConfig struct {
 }
 
 func Run(config *ServerConfig) {
+	// migrate / migrate-status 子命令：需要业务方已通过 AddMigrations 注册（故在此分发，
+	// 而非 healthcheck 那种 init() 早期分发）。执行完即退出，不启动业务服务。
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "migrate":
+			if err := runMigrations(context.Background()); err != nil {
+				slog.Error("数据库迁移失败", "err", err)
+				os.Exit(1)
+			}
+			os.Exit(0)
+		case "migrate-status":
+			os.Exit(migrationStatus(context.Background()))
+		}
+	}
+
+	// 注册了迁移则在对外服务前同步执行：连不上 DB 或迁移失败一律 fail-fast，
+	// 避免表结构未就绪就对外提供服务。未注册迁移的服务跳过此步，行为不变。
+	if hasMigrations() {
+		if err := runMigrations(context.Background()); err != nil {
+			slog.Error("数据库迁移失败，进程退出", "err", err)
+			os.Exit(1)
+		}
+	}
+
 	// 触发 Postgres / Redis 后台初始化（非阻塞，连不上也不退出，后台退避重试）。
 	// 已配置的依赖纳入 /health 健康判定：连上才算健康，未连上 /health 返回 503。
 	// Redis 配置了就必须在启动时主动触发，否则后台重试不启动、healthHandler 会永远判其未连上。
