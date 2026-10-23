@@ -49,7 +49,7 @@ func (t Time) Value() (driver.Value, error) {
 }
 
 // Scan valueof time.Time
-func (t *Time) Scan(v interface{}) error {
+func (t *Time) Scan(v any) error {
 	value, ok := v.(time.Time)
 	if ok {
 		*t = Time{Time: value}

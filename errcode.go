@@ -64,8 +64,7 @@ func Result(data any) *ErrorCode {
 	}
 }
 func Error(err error) *ErrorCode {
-	var errs *ErrorCode
-	if errors.As(err, &errs) {
+	if errs, ok := errors.AsType[*ErrorCode](err); ok {
 		return errs
 	}
 	return &ErrorCode{

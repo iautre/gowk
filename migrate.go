@@ -92,9 +92,9 @@ func parseMigrationName(filename string) (int64, string, error) {
 	base := strings.TrimSuffix(filename, ".sql")
 	numStr := base
 	name := ""
-	if idx := strings.IndexByte(base, '_'); idx >= 0 {
-		numStr = base[:idx]
-		name = base[idx+1:]
+	if before, after, ok := strings.Cut(base, "_"); ok {
+		numStr = before
+		name = after
 	}
 	v, err := strconv.ParseInt(numStr, 10, 64)
 	if err != nil {

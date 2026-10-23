@@ -17,8 +17,7 @@ func Response(ctx *gin.Context, statusCode int, data any, err error) {
 		if err == nil {
 			err = errors.New(strconv.Itoa(statusCode))
 		}
-		var ec *ErrorCode
-		if errors.As(err, &ec) {
+		if ec, ok := errors.AsType[*ErrorCode](err); ok {
 			ec.Status = statusCode
 			ctx.JSON(statusCode, ec)
 		} else {

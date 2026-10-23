@@ -48,8 +48,8 @@ func GlobalErrorHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Next()
 		if len(ctx.Errors) > 0 {
-			var myErr *ErrorCode
-			if !errors.As(ctx.Errors.Last(), &myErr) {
+			myErr, ok := errors.AsType[*ErrorCode](ctx.Errors.Last())
+			if !ok {
 				myErr = NewError(ctx.Errors.Last().Err.Error())
 			}
 			// 只在响应未写入时才写入错误响应，避免污染流式/文件响应

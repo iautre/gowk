@@ -24,5 +24,5 @@ func (p *PageModel[T]) CalcPages() {
 	}
 }
 
-type M = map[string]interface{}
-type A = []interface{}
+type M = map[string]any
+type A = []any

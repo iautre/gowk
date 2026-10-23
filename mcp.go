@@ -24,12 +24,29 @@ func newMCPServer(p MCPProvider) *mcp.Server {
 	return server
 }
 
-// MCPHandler 返回 provider 对应的 Streamable HTTP 处理器（标准 http.Handler）。
-// 一般用 SetupMCP 直接挂到 gin 路由；需要自定义挂载时才单独取用。
+// MCPHandler 返回 MCP SDK 的无状态 Streamable HTTP 处理器。
 func MCPHandler(p MCPProvider) http.Handler {
+	return MCPHandlerWithOptions(p, nil)
+}
+
+// MCPHandlerWithOptions 同 MCPHandler，但允许自定义 Streamable HTTP 选项；
+// opts 为 nil 时使用默认值（Stateless + 请求取消传播）。
+//
+// 注意：MCP SDK 自 v1.8.0 起默认开启 DNS rebinding 保护——连接落在回环地址、
+// 而 Host 头不是回环地址的请求会被直接 403。若服务挂在同机反向代理后面且代理
+// 透传了真实域名（如 nginx 的 proxy_set_header Host $host），需要显式设置
+// opts.DisableLocalhostProtection = true，或让代理把 Host 改写为 127.0.0.1。
+func MCPHandlerWithOptions(p MCPProvider, opts *mcp.StreamableHTTPOptions) http.Handler {
+	server := newMCPServer(p)
+	if opts == nil {
+		opts = &mcp.StreamableHTTPOptions{
+			Stateless:                    true,
+			PropagateRequestCancellation: true,
+		}
+	}
 	return mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
-		return newMCPServer(p)
-	}, nil)
+		return server
+	}, opts)
 }
 
 // SetupMCP 把 provider 的 MCP（Streamable HTTP）挂到现有 gin 路由 path，复用主服务端口。
@@ -42,7 +59,13 @@ func MCPHandler(p MCPProvider) http.Handler {
 //
 //	gowk.SetupMCP(router, "/mcp", provider, mw.Login)
 func SetupMCP(r gin.IRouter, path string, p MCPProvider, mw ...gin.HandlerFunc) {
-	h := MCPHandler(p)
+	SetupMCPWithOptions(r, path, p, nil, mw...)
+}
+
+// SetupMCPWithOptions 同 SetupMCP，但允许自定义 Streamable HTTP 选项。
+// 用法见 MCPHandlerWithOptions 的说明（同机反向代理场景需要关掉 DNS rebinding 保护）。
+func SetupMCPWithOptions(r gin.IRouter, path string, p MCPProvider, opts *mcp.StreamableHTTPOptions, mw ...gin.HandlerFunc) {
+	h := MCPHandlerWithOptions(p, opts)
 	handlers := make([]gin.HandlerFunc, 0, len(mw)+1)
 	handlers = append(handlers, mw...)
 	handlers = append(handlers, func(c *gin.Context) {

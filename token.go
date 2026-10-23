@@ -50,8 +50,8 @@ func CheckLogin(ctx *gin.Context) {
 
 	authHeader := ctx.GetHeader("Authorization")
 	if authHeader != "" {
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			tokenValue := strings.TrimPrefix(authHeader, "Bearer ")
+		if after, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
+			tokenValue := after
 			if tokenValue != "" {
 				token, err = _defaultTokenHandler.LoadToken(ctx, tokenValue)
 				if err == nil && token != nil {
@@ -61,8 +61,8 @@ func CheckLogin(ctx *gin.Context) {
 				}
 			}
 		}
-		if strings.HasPrefix(authHeader, "Basic ") {
-			auth := strings.TrimPrefix(authHeader, "Basic ")
+		if after, ok := strings.CutPrefix(authHeader, "Basic "); ok {
+			auth := after
 			if auth != "" {
 				decoded, decErr := base64.StdEncoding.DecodeString(auth)
 				if decErr == nil && _basicAuthValidator != nil && _basicAuthValidator(string(decoded)) {

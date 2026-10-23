@@ -23,7 +23,7 @@ func Cache() *cache {
 }
 
 type item struct {
-	value    interface{}
+	value    any
 	created  time.Time
 	expireIn time.Duration
 }
@@ -34,7 +34,7 @@ type cache struct {
 	Interval int
 }
 
-func (r *cache) Get(key string) interface{} {
+func (r *cache) Get(key string) any {
 	r.RLock()
 	it := r.Data[key]
 	r.RUnlock()
@@ -43,7 +43,7 @@ func (r *cache) Get(key string) interface{} {
 	}
 	return it.value
 }
-func (r *cache) Set(key string, value interface{}, expireIns ...time.Duration) {
+func (r *cache) Set(key string, value any, expireIns ...time.Duration) {
 	r.Lock()
 	var expireIn time.Duration
 	expireIn = 0

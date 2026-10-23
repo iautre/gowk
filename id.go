@@ -41,7 +41,7 @@ func GenerateRandomString(length int) string {
 	for i := range b {
 		var n *big.Int
 		var err error
-		for attempt := 0; attempt < 3; attempt++ {
+		for range 3 {
 			n, err = rand.Int(rand.Reader, charsetLen)
 			if err == nil {
 				break

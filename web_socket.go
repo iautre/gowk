@@ -140,8 +140,7 @@ func (s *Server) handlerMessage(message *Message) {
 	err := s.MessageInterface.HandlerMessage(message)
 	if err != nil {
 		slog.Error("消息处理失败，返回给发送者")
-		var ec *ErrorCode
-		if errors.As(err, &ec) {
+		if ec, ok := errors.AsType[*ErrorCode](err); ok {
 			s.sendErrorMessage(message.Sender, ec)
 		} else {
 			s.sendErrorMessage(message.Sender, Error(err))
@@ -222,8 +221,7 @@ func (c *SocketClient) readPump() {
 		var message Message
 		err := c.conn.ReadJSON(&message)
 		if err != nil {
-			var jsonErr *json.SyntaxError
-			if errors.As(err, &jsonErr) {
+			if _, ok := errors.AsType[*json.SyntaxError](err); ok {
 				c.send <- &Message{Receiver: c.name, err: NewError("参数错误")}
 				continue
 			}

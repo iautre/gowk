@@ -1,5 +1,36 @@
 这是一个gin框架的公共模块
 
+## MCP Streamable HTTP
+
+`SetupMCP` / `MCPHandler` 提供无状态的 MCP Streamable HTTP 服务。
+
+需要自定义传输选项（例如关闭 DNS rebinding 保护）时用 `SetupMCPWithOptions` / `MCPHandlerWithOptions`。
+
+### 同机反向代理会 403
+
+MCP SDK 自 v1.8.0 起默认开启 DNS rebinding 保护：**连接落在回环地址、但 `Host` 头不是回环地址**的请求一律 403。
+
+所以如果服务挂在同机 nginx 后面、且代理透传了真实域名：
+
+```nginx
+proxy_set_header Host $host;   # 会触发 403
+```
+
+二选一解决：
+
+- 让代理改写 Host：`proxy_set_header Host 127.0.0.1:8080;`
+- 或在代码里关掉保护：
+
+```go
+gowk.SetupMCPWithOptions(router, "/mcp", provider, &mcp.StreamableHTTPOptions{
+    Stateless:                  true,
+    DisableLocalhostProtection: true,
+}, mw.Login)
+```
+
+注意自定义 `opts` 会整体替换默认值——默认的 `Stateless` / `PropagateRequestCancellation` 需要自己带上。
+
+
 ## 环境变量与依赖语义
 
 - `DATABASE_DSN`：配置后 `gowk.Run` / `InitPostgres` 会触发 Postgres 后台初始化（非阻塞）。连不上**不会退出进程**，后台以指数退避无限重试。未就绪期间 `gowk.Postgres(ctx)` 返回 nil，`gowk.PostgresTx(ctx)` 返回 `postgres unavailable` 错误，不会 panic。未配置或 DSN 解析失败同样保持降级。
