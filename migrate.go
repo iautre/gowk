@@ -37,7 +37,7 @@ var migrationSources []migrationSource
 // 版本号按数值升序执行；版本号在所有来源内必须唯一。
 //
 // 注册后：gowk.Run 启动时会在连接 DB 成功后、对外提供服务前自动执行未应用的迁移，
-// 失败则进程退出（fail-fast）。未调用 AddMigrations 的服务，迁移功能完全不启用，Run 行为不变。
+// 失败则进程退出（fail-fast）。未调用 AddMigrations 的服务不执行迁移。
 func AddMigrations(fsys fs.FS, dir string) {
 	migrationSources = append(migrationSources, migrationSource{fsys: fsys, dir: dir})
 }
@@ -111,6 +111,10 @@ func parseMigrationName(filename string) (int64, string, error) {
 func runMigrations(ctx context.Context) error {
 	if !hasMigrations() {
 		return nil
+	}
+	// 注册了迁移却关闭 PostgreSQL 属于自相矛盾的配置，直接报错。
+	if !pgEnabled {
+		return errors.New("migrations registered but DATABASE_ENABLED is false")
 	}
 	if databaseDsn == "" {
 		return errors.New("migrations registered but DATABASE_DSN is empty")
@@ -244,6 +248,11 @@ func migrationStatus(ctx context.Context) int {
 	if !hasMigrations() {
 		slog.Info("未注册任何迁移来源")
 		return 0
+	}
+	if !pgEnabled || databaseDsn == "" {
+		slog.Error("PostgreSQL 未启用或 DATABASE_DSN 为空，无法查询迁移状态",
+			"DATABASE_ENABLED", pgEnabled)
+		return 1
 	}
 	migs, err := loadMigrations()
 	if err != nil {

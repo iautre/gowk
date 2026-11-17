@@ -37,7 +37,7 @@ func New() *gin.Engine {
 
 // ServerRun 同步执行 net.Listen 绑定端口，成功后把 Serve 放到 goroutine 里运行。
 // 监听失败（端口占用/地址非法等）直接返回 error，由调用方决定 fail-fast；
-// Serve 阶段的非 ErrServerClosed 错误只打日志，不再向上传递（此时端口已绑好，进程也已通告 running）。
+// Serve 阶段的非 ErrServerClosed 错误只打日志，不向上传递（此时端口已绑好，进程也已通告 running）。
 func (h *HttpServer) ServerRun() error {
 	if h.Engine == nil {
 		h.Engine = gin.Default()

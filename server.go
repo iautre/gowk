@@ -31,8 +31,16 @@ func Run(config *ServerConfig) {
 		}
 	}
 
-	// 注册了迁移则在对外服务前同步执行：连不上 DB 或迁移失败一律 fail-fast，
-	// 避免表结构未就绪就对外提供服务。未注册迁移的服务跳过此步，行为不变。
+	// PostgreSQL 是默认强制依赖：未显式关掉 DATABASE_ENABLED 就必须配置 DATABASE_DSN
+	// 且连接成功，否则进程不启动。建池放在迁移之前，保证迁移和对外服务都跑在
+	// 一个已就绪的连接池上。
+	if err := InitPostgres(); err != nil {
+		slog.Error("PostgreSQL 初始化失败，进程退出", "err", err)
+		os.Exit(1)
+	}
+
+	// 注册了迁移则在对外服务前同步执行：连接不上或迁移失败一律 fail-fast，
+	// 避免表结构未就绪就对外提供服务。未注册迁移的服务跳过此步。
 	if hasMigrations() {
 		if err := runMigrations(context.Background()); err != nil {
 			slog.Error("数据库迁移失败，进程退出", "err", err)
@@ -40,10 +48,8 @@ func Run(config *ServerConfig) {
 		}
 	}
 
-	// 触发 Postgres / Redis 后台初始化（非阻塞，连不上也不退出，后台退避重试）。
-	// 已配置的依赖纳入 /health 健康判定：连上才算健康，未连上 /health 返回 503。
-	// Redis 配置了就必须在启动时主动触发，否则后台重试不启动、healthHandler 会永远判其未连上。
-	InitPostgres()
+	// Redis 是可选依赖：未配置则跳过，配置了必须主动触发后台重试，
+	// 否则后台重试不启动、healthHandler 会永远判其未连上。
 	if HasRedis() {
 		InitRedis()
 	}
@@ -109,11 +115,12 @@ func RunBoth(engine *gin.Engine, grpcServer *GrpcServer) {
 	Run(&ServerConfig{HttpEngine: engine, GrpcServer: grpcServer})
 }
 
-// InitPostgres 触发 Postgres 的 sync.Once 初始化路径。
-// 只会启动后台重试 goroutine，本身非阻塞；连接失败不会退出进程，
-// 在连接成功之前 Postgres(ctx) 返回 nil，PostgresTx 返回 "postgres unavailable"。
-func InitPostgres() {
-	Postgres(context.Background())
+// InitPostgres 同步初始化 Postgres 连接池：DATABASE_ENABLED 为 true（默认）时
+// 必须在 migrationConnectTimeout 内连上，否则返回错误；返回 nil 后 Postgres(ctx) 必定非 nil。
+// 仅在 DATABASE_ENABLED=false 时跳过，此时返回 nil 且 Postgres(ctx) 恒为 nil。
+func InitPostgres() error {
+	pgInitOnce.Do(func() { pgInitErr = initPostgres() })
+	return pgInitErr
 }
 
 // InitRedis 触发 Redis 的 sync.Once 初始化路径。

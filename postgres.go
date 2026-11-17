@@ -3,9 +3,11 @@ package gowk
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,52 +17,94 @@ import (
 var (
 	defaultPostgres atomic.Pointer[pgxpool.Pool]
 	pgInitOnce      sync.Once
-	pgRetryCancel   context.CancelFunc
+	pgInitErr       error
 )
 
-func initPostgres() {
-	// DSN 未配置属于"没启用"，保持老行为直接返回，
-	// 业务侧靠 Postgres(ctx) == nil / PostgresTx 的错误判断降级。
+// initPostgres 同步建池并 Ping，只有真正连上才返回 nil。
+// 行为由 DATABASE_ENABLED 决定：
+//   - false：跳过初始化，Postgres(ctx) 恒为 nil；已配置的 DATABASE_DSN 被忽略并记一条 warn；
+//   - true（默认）：DATABASE_DSN 必须非空且在 migrationConnectTimeout 内连接成功。
+//
+// 重试窗口与 connectForMigration 一致，让 DB 比应用晚就绪的编排（compose / K8s）
+// 能自愈；超时仍连不上则返回错误，由 Run 决定是否退出进程。
+func initPostgres() error {
+	if !pgEnabled {
+		if databaseDsn != "" {
+			slog.Warn("DATABASE_ENABLED=false，已忽略配置的 DATABASE_DSN")
+		}
+		return nil
+	}
 	if databaseDsn == "" {
-		return
+		return errors.New("PostgreSQL 已启用（DATABASE_ENABLED 默认为 true）但 DATABASE_DSN 为空：" +
+			"请配置 DATABASE_DSN，或显式设置 DATABASE_ENABLED=false 关闭 PostgreSQL")
 	}
 	pgxConfig, err := pgxpool.ParseConfig(databaseDsn)
 	if err != nil {
-		// DSN 语法错误后台再怎么重试也是同一个错，直接降级并记一条错误，避免刷屏。
-		slog.Error("PostgreSQL 配置解析异常，保持降级", "err", err)
-		return
+		return fmt.Errorf("解析 DATABASE_DSN 失败: %w", err)
 	}
 	pgxConfig.ConnConfig.Tracer = &tracelog.TraceLog{
 		Logger:   &PostgresLogger{},
 		LogLevel: tracelog.LogLevelDebug,
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	pgRetryCancel = cancel
-	go retryBackground(ctx, "PostgreSQL", pgRetryBaseInterval, pgRetryMaxInterval, func(c context.Context) error {
-		pingCtx, cancelPing := context.WithTimeout(c, pgPingTimeout)
-		defer cancelPing()
-		p, err := pgxpool.NewWithConfig(pingCtx, pgxConfig)
-		if err != nil {
-			// 防御未来 pgx 实现变化：同时返回 pool 与 err 时也要释放。
-			if p != nil {
-				p.Close()
-			}
-			return err
+	ctx, cancel := context.WithTimeout(context.Background(), migrationConnectTimeout)
+	defer cancel()
+
+	start := time.Now()
+	backoff := pgRetryBaseInterval
+	var lastErr error
+	for attempt := 1; ; attempt++ {
+		pool, err := connectPool(ctx, pgxConfig)
+		if err == nil {
+			defaultPostgres.Store(pool)
+			slog.Info("PostgreSQL 连接成功",
+				"attempts", attempt,
+				"elapsed", time.Since(start).Round(time.Millisecond))
+			return nil
 		}
-		if err := p.Ping(pingCtx); err != nil {
-			p.Close()
-			return err
+		lastErr = err
+
+		timer := time.NewTimer(backoff)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return fmt.Errorf("连接 PostgreSQL 超时（%s，共 %d 次尝试）: %w（最后一次错误: %v）",
+				migrationConnectTimeout, attempt, ctx.Err(), lastErr)
+		case <-timer.C:
 		}
-		defaultPostgres.Store(p)
-		return nil
-	})
+
+		slog.Warn("PostgreSQL 连接失败，稍后重试",
+			"attempt", attempt,
+			"backoff", backoff.Round(time.Millisecond),
+			"err", err)
+		backoff *= 2
+		if backoff > pgRetryMaxInterval {
+			backoff = pgRetryMaxInterval
+		}
+	}
+}
+
+// connectPool 建一个连接池并用 Ping 验证可用；失败时释放池，避免重试累积连接。
+func connectPool(ctx context.Context, cfg *pgxpool.Config) (*pgxpool.Pool, error) {
+	pingCtx, cancel := context.WithTimeout(ctx, pgPingTimeout)
+	defer cancel()
+
+	pool, err := pgxpool.NewWithConfig(pingCtx, cfg)
+	if err != nil {
+		// 防御未来 pgx 实现变化：同时返回 pool 与 err 时也要释放。
+		if pool != nil {
+			pool.Close()
+		}
+		return nil, err
+	}
+	if err := pool.Ping(pingCtx); err != nil {
+		pool.Close()
+		return nil, err
+	}
+	return pool, nil
 }
 
 func closePostgres() {
-	if pgRetryCancel != nil {
-		pgRetryCancel()
-	}
 	if pool := defaultPostgres.Load(); pool != nil {
 		pool.Close()
 	}
@@ -87,14 +131,15 @@ func PostgresTx(ctx context.Context) (pgx.Tx, error) {
 	return nil, errors.New("no tx")
 }
 
-// Postgres 返回连接池，通过 sync.Once 保证 initPostgres 只触发一次后台重试。
+// Postgres 返回连接池。首次调用触发同步初始化（结果已被 sync.Once 缓存），
+// 因此未调用过 InitPostgres 的代码首次进入这里可能阻塞至多 migrationConnectTimeout。
 // 返回值语义：
-//   - DATABASE_DSN 未配置 / 配置错误 / 后台尚未连上 → nil
-//   - 后台连接成功后 → 非 nil 连接池
+//   - DATABASE_ENABLED=false → nil
+//   - 启用且初始化失败 → nil，但 Run 早已在启动时退出进程，运行期不会走到
+//   - 初始化成功 → 非 nil；之后池的生命周期与进程一致，不会回到 nil
 //
-// 调用方应在业务层检查 nil 并返回错误（例如 PostgresTx 的 "postgres unavailable"），
-// 不要对 nil 池直接调用方法。
+// 调用方仍应检查 nil（例如 PostgresTx 的 "postgres unavailable"），不要对 nil 池调用方法。
 func Postgres(ctx context.Context) *pgxpool.Pool {
-	pgInitOnce.Do(initPostgres)
+	pgInitOnce.Do(func() { pgInitErr = initPostgres() })
 	return defaultPostgres.Load()
 }

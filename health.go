@@ -45,13 +45,13 @@ func init() {
 }
 
 // dependenciesReady 报告所有"已配置"的关键依赖是否都已连上，口径与 /health 一致：
-//   - 配了 DATABASE_DSN 则 Postgres 必须已连上；
+//   - PostgreSQL 启用（DATABASE_ENABLED 未关）则 Postgres 必须已连上；
 //   - 配了 REDIS_ADDR 则 Redis 必须已连上；
-//   - 未配置的依赖不参与判定。
+//   - 未启用的依赖不参与判定。
 //
 // 供 HTTP /health 与 gRPC grpc.health.v1.Health 共用，保证两条链路判定一致。
 func dependenciesReady() bool {
-	if databaseDsn != "" && defaultPostgres.Load() == nil {
+	if pgEnabled && databaseDsn != "" && defaultPostgres.Load() == nil {
 		return false
 	}
 	if HasRedis() && defaultRedis.Load() == nil {
@@ -65,9 +65,10 @@ func dependenciesReady() bool {
 // 依赖状态只读 atomic 指针（defaultPostgres/defaultRedis），不发起真实查询、不刷日志。
 //
 // 判定规则：
-//   - 配置了 DATABASE_DSN：Postgres 连上前（后台仍在重试）一律视为未连上 → 不健康。
-//   - 配置了 REDIS_ADDR：Redis 连上前一律视为未连上 → 不健康。
-//   - 未配置的依赖不参与判定。
+//   - PostgreSQL 启用（DATABASE_ENABLED 未关，默认如此）：连接池必须已就绪，否则不健康。
+//     启用但连不上时 Run 会直接退出，所以这条主要用于捕捉"已连上又被关闭"之外的异常路径。
+//   - 配了 REDIS_ADDR：Redis 连上前一律视为未连上 → 不健康。
+//   - 未启用的依赖不参与判定。
 //
 // 响应体 {status,time,services}：
 //   - status:   全部就绪为 "ok"，否则 "unavailable"。
@@ -87,7 +88,7 @@ func healthHandler(c *gin.Context) {
 
 	healthy := true
 
-	if databaseDsn != "" {
+	if pgEnabled && databaseDsn != "" {
 		if defaultPostgres.Load() != nil {
 			services["postgres"] = "connected"
 		} else {

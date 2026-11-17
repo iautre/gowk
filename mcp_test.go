@@ -62,7 +62,7 @@ func TestMCPHandlerWithOptionsDisablesLocalhostProtection(t *testing.T) {
 		Stateless:                  true,
 		DisableLocalhostProtection: true,
 	})
-	// 关掉保护后不该再 403；无状态模式下 GET 仍是 405。
+	// 关掉保护后返回 405 而非 403（无状态模式下 GET 不被支持）。
 	if got := localhostHostStatus(t, handler); got != http.StatusMethodNotAllowed {
 		t.Fatalf("status = %d, want %d", got, http.StatusMethodNotAllowed)
 	}
