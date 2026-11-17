@@ -113,7 +113,8 @@ func Login(ctx *gin.Context, loginId int64) (string, error) {
 }
 
 func loginWithOidcJwt(ctx *gin.Context, token *Token) {
-	ctx.SetCookie("oidc_jwt", token.Value, 86400, "/", "", true, true)
+	// 有效期与 token 自身超时保持一致；Secure 跟随部署协议，http 下必须为 false。
+	ctx.SetCookie("oidc_jwt", token.Value, int(_defaultTokenTimeout), "/", "", cookieSecure, true)
 }
 
 func (t *Token) setContextToken(ctx *gin.Context, token *Token) {

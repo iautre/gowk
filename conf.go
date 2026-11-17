@@ -18,6 +18,11 @@ var (
 	// 且在启动期内连接成功，否则进程不启动。只有显式设为 false 才允许在没有
 	// PostgreSQL 的情况下运行，此时 Postgres(ctx) 恒为 nil。
 	pgEnabled = getEnvBool("DATABASE_ENABLED", true)
+
+	// cookieSecure 决定浏览器会话 cookie（oidc_jwt）是否带 Secure 标记。
+	// COOKIE_SECURE 优先；未设置时按 BASE_URL 的协议推导——http 部署下必须为
+	// false，否则浏览器会直接丢弃 cookie，登录态永远写不进去。
+	cookieSecure = getEnvBool("COOKIE_SECURE", !strings.HasPrefix(BaseURL(), "http://"))
 )
 
 // 后台重试参数。均走 time.ParseDuration 解析；未设置、解析失败或 <= 0 时回落到默认值。
@@ -83,3 +88,9 @@ func HasGRPC() bool  { return grpcServerAddr != "" }
 func BaseURL() string {
 	return strings.TrimSuffix(baseURL, "/")
 }
+
+// CookieSecure 返回会话 cookie 是否带 Secure 标记。
+func CookieSecure() bool { return cookieSecure }
+
+// SetCookieSecure 覆盖 cookie 的 Secure 标记，供测试与特殊部署形态使用。
+func SetCookieSecure(secure bool) { cookieSecure = secure }
