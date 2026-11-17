@@ -63,8 +63,11 @@ func GlobalErrorHandler() gin.HandlerFunc {
 			}
 			return
 		}
-		// 无错误且响应未写入时才补充默认 OK 响应
-		if !ctx.Writer.Written() {
+		// 无错误、未写入响应、且状态码仍是默认 200 时才补默认 OK。
+		// 只看 Written() 不够：它判断的是"是否写出过字节"，而 ctx.Redirect(302)
+		// 只登记状态码不落盘，POST 下 http.Redirect 也不写 body，此时 Written()
+		// 为 false 但状态码已是 302，补 JSON 会把重定向盖成 200。
+		if !ctx.Writer.Written() && ctx.Writer.Status() == http.StatusOK {
 			ctx.JSON(http.StatusOK, OK)
 			ctx.Abort()
 		}
